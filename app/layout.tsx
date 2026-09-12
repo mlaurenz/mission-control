@@ -44,10 +44,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               borderRadius: '6px',
               fontSize: '0.9rem',
               fontWeight: 500,
-              background: '#f0f0f0',
               marginBottom: '0.25rem'
             }}>
               🤖 Agents
+            </a>
+            <a href="/sessions" style={{ 
+              display: 'block', 
+              padding: '0.75rem 1rem', 
+              color: '#1a1a1a', 
+              textDecoration: 'none',
+              borderRadius: '6px',
+              fontSize: '0.9rem',
+              fontWeight: 500,
+              marginBottom: '0.25rem'
+            }}>
+              💬 Sessions
             </a>
             <a href="/tasks" style={{ 
               display: 'block', 

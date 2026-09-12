@@ -1,51 +1,35 @@
-// app/agents/page.tsx - Agents Page (Clean Style - White bg, Black text)
-import { getSessions, getHealth } from '@/lib/connectors/HermesConnector';
+// app/agents/page.tsx - Agents Page (Clean Style)
+import { getMCP, getHealth } from '@/lib/connectors/HermesConnector';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AgentsPage() {
+  let mcp = { servers: [] };
   let health = { status: 'unknown', timestamp: '' };
-  let sessions = { sessions: [] };
 
+  try { mcp = await getMCP(); } catch (e) {}
   try { health = await getHealth(); } catch (e) {}
-  try { sessions = await getSessions(); } catch (e) {}
 
-  // Sort: active first, then recent
-  const sortedSessions = [...(sessions.sessions || [])].sort((a: any, b: any) => {
-    const aActive = a.last_active?.toLowerCase().includes('now') || a.last_active?.toLowerCase().includes('m ago');
-    const bActive = b.last_active?.toLowerCase().includes('now') || b.last_active?.toLowerCase().includes('m ago');
-    if (aActive && !bActive) return -1;
-    if (!aActive && bActive) return 1;
-    return 0;
-  });
-
-  const activeCount = sortedSessions.filter((s: any) => 
-    s.last_active?.toLowerCase().includes('now') || s.last_active?.toLowerCase().includes('m ago')
-  ).length;
+  const agents = mcp.servers || [];
 
   return (
-    <main style={{ 
-      color: '#1a1a1a', 
-      background: '#ffffff', 
-      minHeight: '100vh',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-    }}>
+    <main style={{ color: '#1a1a1a', background: '#ffffff' }}>
       <header style={{ marginBottom: '2rem', borderBottom: '1px solid #e5e5e5', paddingBottom: '1rem' }}>
-        <h1 style={{ margin: 0, fontSize: '1.75rem', color: '#1a1a1a', fontWeight: 600 }}>Agents & Sessions</h1>
+        <h1 style={{ margin: 0, fontSize: '1.75rem', color: '#1a1a1a', fontWeight: 600 }}>🤖 Agents</h1>
         <p style={{ margin: '0.5rem 0 0', color: '#666', fontSize: '0.9rem' }}>
-          Manage and monitor Hermes agents
+          MCP agents and their last activity
         </p>
       </header>
 
-      {/* Summary Cards - Clean Style */}
+      {/* Summary Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '2rem' }}>
         <div style={{ background: '#fafafa', padding: '1.25rem', borderRadius: '8px', border: '1px solid #e5e5e5' }}>
-          <p style={{ margin: 0, color: '#666', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total</p>
-          <p style={{ margin: '0.5rem 0 0', fontSize: '1.75rem', color: '#1a1a1a', fontWeight: 600 }}>{sortedSessions.length}</p>
+          <p style={{ margin: 0, color: '#666', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Agents</p>
+          <p style={{ margin: '0.5rem 0 0', fontSize: '1.75rem', color: '#1a1a1a', fontWeight: 600 }}>{agents.length}</p>
         </div>
         <div style={{ background: '#fafafa', padding: '1.25rem', borderRadius: '8px', border: '1px solid #e5e5e5' }}>
-          <p style={{ margin: 0, color: '#666', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Active Now</p>
-          <p style={{ margin: '0.5rem 0 0', fontSize: '1.75rem', color: '#16a34a', fontWeight: 600 }}>{activeCount}</p>
+          <p style={{ margin: 0, color: '#666', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Active</p>
+          <p style={{ margin: '0.5rem 0 0', fontSize: '1.75rem', color: '#16a34a', fontWeight: 600 }}>{agents.length}</p>
         </div>
         <div style={{ background: '#fafafa', padding: '1.25rem', borderRadius: '8px', border: '1px solid #e5e5e5' }}>
           <p style={{ margin: 0, color: '#666', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Gateway</p>
@@ -59,62 +43,55 @@ export default async function AgentsPage() {
         </div>
       </div>
 
-      {/* Sessions List */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-        <h2 style={{ fontSize: '1.1rem', color: '#1a1a1a', margin: 0, fontWeight: 600 }}>Recent Sessions</h2>
-        <span style={{ fontSize: '0.75rem', color: '#666' }}>Most recent ↑</span>
-      </div>
-      
-      <div style={{ background: '#ffffff', borderRadius: '8px', border: '1px solid #e5e5e5', overflow: 'hidden' }}>
-        {sortedSessions.length > 0 ? (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ background: '#fafafa', borderBottom: '1px solid #e5e5e5' }}>
-                <th style={{ textAlign: 'left', padding: '0.875rem 1rem', color: '#666', fontWeight: 500, fontSize: '0.8rem' }}>Status</th>
-                <th style={{ textAlign: 'left', padding: '0.875rem 1rem', color: '#666', fontWeight: 500, fontSize: '0.8rem' }}>Title</th>
-                <th style={{ textAlign: 'left', padding: '0.875rem 1rem', color: '#666', fontWeight: 500, fontSize: '0.8rem' }}>Workspace</th>
-                <th style={{ textAlign: 'right', padding: '0.875rem 1rem', color: '#666', fontWeight: 500, fontSize: '0.8rem' }}>Last Active</th>
+      {/* Agents Table */}
+      <div style={{ background: '#fafafa', borderRadius: '8px', border: '1px solid #e5e5e5', overflow: 'hidden' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr style={{ background: '#f0f0f0', borderBottom: '1px solid #e5e5e5' }}>
+              <th style={{ textAlign: 'left', padding: '0.875rem 1rem', color: '#666', fontWeight: 500, fontSize: '0.8rem' }}>Agent</th>
+              <th style={{ textAlign: 'left', padding: '0.875rem 1rem', color: '#666', fontWeight: 500, fontSize: '0.8rem' }}>Type</th>
+              <th style={{ textAlign: 'center', padding: '0.875rem 1rem', color: '#666', fontWeight: 500, fontSize: '0.8rem' }}>Tools</th>
+              <th style={{ textAlign: 'center', padding: '0.875rem 1rem', color: '#666', fontWeight: 500, fontSize: '0.8rem' }}>Status</th>
+              <th style={{ textAlign: 'right', padding: '0.875rem 1rem', color: '#666', fontWeight: 500, fontSize: '0.8rem' }}>Last Activity</th>
+            </tr>
+          </thead>
+          <tbody>
+            {agents.length > 0 ? agents.map((agent: any, i: number) => (
+              <tr key={i} style={{ borderBottom: i < agents.length - 1 ? '1px solid #f0f0f0' : 'none' }}>
+                <td style={{ padding: '0.875rem 1rem' }}>
+                  <div style={{ color: '#1a1a1a', fontWeight: 500 }}>{agent.name || 'Unknown'}</div>
+                </td>
+                <td style={{ padding: '0.875rem 1rem', color: '#666' }}>MCP</td>
+                <td style={{ padding: '0.875rem 1rem', textAlign: 'center', color: '#666' }}>{agent.tools || 'all'}</td>
+                <td style={{ padding: '0.875rem 1rem', textAlign: 'center' }}>
+                  <span style={{ 
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.375rem',
+                    padding: '0.25rem 0.625rem',
+                    borderRadius: '9999px',
+                    fontSize: '0.75rem',
+                    fontWeight: 500,
+                    background: '#dcfce7',
+                    color: '#16a34a'
+                  }}>
+                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#16a34a' }}/>
+                    Enabled
+                  </span>
+                </td>
+                <td style={{ padding: '0.875rem 1rem', textAlign: 'right', color: '#666', fontSize: '0.85rem' }}>
+                  {agent.last_active || 'N/A'}
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {sortedSessions.map((s: any, i: number) => {
-                const isActive = s.last_active?.toLowerCase().includes('now') || s.last_active?.toLowerCase().includes('m ago');
-                return (
-                  <tr key={i} style={{ borderBottom: i < sortedSessions.length - 1 ? '1px solid #f0f0f0' : 'none' }}>
-                    <td style={{ padding: '0.875rem 1rem', width: '100px' }}>
-                      <span style={{ 
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '0.375rem',
-                        padding: '0.25rem 0.625rem',
-                        borderRadius: '9999px',
-                        fontSize: '0.75rem',
-                        fontWeight: 500,
-                        background: isActive ? '#dcfce7' : '#f3f4f6',
-                        color: isActive ? '#16a34a' : '#6b7280'
-                      }}>
-                        <span style={{ 
-                          width: '6px',
-                          height: '6px',
-                          borderRadius: '50%',
-                          background: isActive ? '#16a34a' : '#6b7280'
-                        }}/>
-                        {isActive ? 'Active' : 'Idle'}
-                      </span>
-                    </td>
-                    <td style={{ padding: '0.875rem 1rem', color: '#1a1a1a', fontWeight: 500 }}>{s.title || 'Untitled'}</td>
-                    <td style={{ padding: '0.875rem 1rem', color: '#666' }}>{s.workspace}</td>
-                    <td style={{ textAlign: 'right', padding: '0.875rem 1rem', color: isActive ? '#16a34a' : '#666', fontSize: '0.85rem' }}>{s.last_active || 'N/A'}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        ) : (
-          <div style={{ padding: '3rem', textAlign: 'center' }}>
-            <p style={{ margin: 0, color: '#666' }}>No sessions found</p>
-          </div>
-        )}
+            )) : (
+              <tr>
+                <td colSpan={5} style={{ padding: '3rem', textAlign: 'center', color: '#666' }}>
+                  No agents found
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
     </main>
   );

@@ -1,4 +1,4 @@
-// app/system/page.tsx - System Page
+// app/system/page.tsx - System Page (Clean Style)
 import { getHealth, getGatewayStatus, getMCP } from '@/lib/connectors/HermesConnector';
 
 export const dynamic = 'force-dynamic';
@@ -13,25 +13,20 @@ export default async function SystemPage() {
   try { mcp = await getMCP(); } catch (e) {}
 
   return (
-    <main style={{ color: '#e0e0e0' }}>
-      <header style={{ marginBottom: '1.5rem' }}>
-        <h1 style={{ margin: 0, fontSize: '1.5rem', color: '#fff' }}>⚙️ System</h1>
-        <p style={{ margin: '0.5rem 0 0', color: '#666', fontSize: '0.85rem' }}>
-          Hermes system status and health
-        </p>
+    <main style={{ color: '#1a1a1a', background: '#ffffff' }}>
+      <header style={{ marginBottom: '2rem', borderBottom: '1px solid #e5e5e5', paddingBottom: '1rem' }}>
+        <h1 style={{ margin: 0, fontSize: '1.75rem', color: '#1a1a1a', fontWeight: 600 }}>⚙️ System</h1>
+        <p style={{ margin: '0.5rem 0 0', color: '#666', fontSize: '0.9rem' }}>Hermes system status and health</p>
       </header>
 
       {/* Health Status */}
-      <div style={{ background: '#141414', borderRadius: '8px', border: '1px solid #333', padding: '1.5rem', marginBottom: '1rem' }}>
+      <div style={{ background: '#fafafa', borderRadius: '8px', border: '1px solid #e5e5e5', padding: '1.5rem', marginBottom: '1.5rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <span style={{ 
-            fontSize: '2rem',
-            color: health.status === 'healthy' ? '#4ade80' : '#f87171'
-          }}>
+          <span style={{ fontSize: '2rem' }}>
             {health.status === 'healthy' ? '🟢' : '🔴'}
           </span>
           <div>
-            <div style={{ color: '#fff', fontSize: '1.25rem', fontWeight: 600 }}>Hermes Gateway</div>
+            <div style={{ color: '#1a1a1a', fontSize: '1.25rem', fontWeight: 600 }}>Hermes Gateway</div>
             <div style={{ color: '#666', fontSize: '0.85rem' }}>Status: {health.status || 'unknown'}</div>
           </div>
         </div>
@@ -44,30 +39,30 @@ export default async function SystemPage() {
 
       {/* Stats Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-        <div style={{ background: '#141414', padding: '1.25rem', borderRadius: '8px', border: '1px solid #333' }}>
-          <p style={{ margin: 0, color: '#666', fontSize: '0.75rem', textTransform: 'uppercase' }}>Processes</p>
-          <p style={{ margin: '0.5rem 0 0', fontSize: '1.75rem', color: '#fff' }}>{gateway.processes || 0}</p>
+        <div style={{ background: '#fafafa', padding: '1.25rem', borderRadius: '8px', border: '1px solid #e5e5e5' }}>
+          <p style={{ margin: 0, color: '#666', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Processes</p>
+          <p style={{ margin: '0.5rem 0 0', fontSize: '1.75rem', color: '#1a1a1a', fontWeight: 600 }}>{gateway.processes || 0}</p>
         </div>
-        <div style={{ background: '#141414', padding: '1.25rem', borderRadius: '8px', border: '1px solid #333' }}>
-          <p style={{ margin: 0, color: '#666', fontSize: '0.75rem', textTransform: 'uppercase' }}>MCP Servers</p>
-          <p style={{ margin: '0.5rem 0 0', fontSize: '1.75rem', color: '#fff' }}>{(mcp.servers || []).length}</p>
+        <div style={{ background: '#fafafa', padding: '1.25rem', borderRadius: '8px', border: '1px solid #e5e5e5' }}>
+          <p style={{ margin: 0, color: '#666', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>MCP Servers</p>
+          <p style={{ margin: '0.5rem 0 0', fontSize: '1.75rem', color: '#1a1a1a', fontWeight: 600 }}>{(mcp.servers || []).length}</p>
         </div>
-        <div style={{ background: '#141414', padding: '1.25rem', borderRadius: '8px', border: '1px solid #333' }}>
-          <p style={{ margin: 0, color: '#666', fontSize: '0.75rem', textTransform: 'uppercase' }}>Model</p>
-          <p style={{ margin: '0.5rem 0 0', fontSize: '1rem', color: '#60a5fa' }}>MiniMax-M2</p>
+        <div style={{ background: '#fafafa', padding: '1.25rem', borderRadius: '8px', border: '1px solid #e5e5e5' }}>
+          <p style={{ margin: 0, color: '#666', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Model</p>
+          <p style={{ margin: '0.5rem 0 0', fontSize: '1rem', color: '#2563eb', fontWeight: 500 }}>MiniMax-M2</p>
         </div>
       </div>
 
       {/* MCP Servers */}
-      <div style={{ background: '#141414', borderRadius: '8px', border: '1px solid #333' }}>
-        <div style={{ padding: '1rem', borderBottom: '1px solid #333' }}>
-          <h2 style={{ margin: 0, fontSize: '0.95rem', color: '#fff' }}>🔌 MCP Servers</h2>
+      <div style={{ background: '#fafafa', borderRadius: '8px', border: '1px solid #e5e5e5' }}>
+        <div style={{ padding: '1rem', borderBottom: '1px solid #e5e5e5' }}>
+          <h2 style={{ margin: 0, fontSize: '0.95rem', color: '#1a1a1a', fontWeight: 600 }}>🔌 MCP Servers</h2>
         </div>
         {(mcp.servers && mcp.servers.length > 0) ? (
           <div style={{ padding: '0.5rem' }}>
             {mcp.servers.map((server: any, i: number) => (
-              <div key={i} style={{ padding: '0.75rem 1rem', borderRadius: '6px', marginBottom: '0.25rem', background: '#1a1a1a' }}>
-                <div style={{ color: '#fff', fontSize: '0.9rem' }}>{server.name || server}</div>
+              <div key={i} style={{ padding: '0.75rem 1rem', borderRadius: '6px', marginBottom: '0.25rem', background: '#ffffff', border: '1px solid #e5e5e5' }}>
+                <div style={{ color: '#1a1a1a', fontSize: '0.9rem', fontWeight: 500 }}>{server.name || server}</div>
               </div>
             ))}
           </div>

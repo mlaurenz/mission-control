@@ -1,4 +1,4 @@
-// app/skills/page.tsx - Skills Page
+// app/skills/page.tsx - Skills Page (Clean Style)
 import { getSkills } from '@/lib/connectors/HermesConnector';
 
 export const dynamic = 'force-dynamic';
@@ -11,27 +11,25 @@ export default async function SkillsPage() {
   const skillList = skills.skills || [];
 
   return (
-    <main style={{ color: '#e0e0e0' }}>
-      <header style={{ marginBottom: '1.5rem' }}>
-        <h1 style={{ margin: 0, fontSize: '1.5rem', color: '#fff' }}>🔧 Skills</h1>
-        <p style={{ margin: '0.5rem 0 0', color: '#666', fontSize: '0.85rem' }}>
-          Hermes skills installed
-        </p>
+    <main style={{ color: '#1a1a1a', background: '#ffffff' }}>
+      <header style={{ marginBottom: '2rem', borderBottom: '1px solid #e5e5e5', paddingBottom: '1rem' }}>
+        <h1 style={{ margin: 0, fontSize: '1.75rem', color: '#1a1a1a', fontWeight: 600 }}>🔧 Skills</h1>
+        <p style={{ margin: '0.5rem 0 0', color: '#666', fontSize: '0.9rem' }}>Hermes skills installed</p>
       </header>
 
       {/* Summary */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-        <div style={{ background: '#141414', padding: '1.25rem', borderRadius: '8px', border: '1px solid #333' }}>
-          <p style={{ margin: 0, color: '#666', fontSize: '0.75rem', textTransform: 'uppercase' }}>Total Skills</p>
-          <p style={{ margin: '0.5rem 0 0', fontSize: '1.75rem', color: '#fff' }}>{skillList.length}</p>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '2rem' }}>
+        <div style={{ background: '#fafafa', padding: '1.25rem', borderRadius: '8px', border: '1px solid #e5e5e5' }}>
+          <p style={{ margin: 0, color: '#666', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Skills</p>
+          <p style={{ margin: '0.5rem 0 0', fontSize: '1.75rem', color: '#1a1a1a', fontWeight: 600 }}>{skillList.length}</p>
         </div>
-        <div style={{ background: '#141414', padding: '1.25rem', borderRadius: '8px', border: '1px solid #333' }}>
-          <p style={{ margin: 0, color: '#666', fontSize: '0.75rem', textTransform: 'uppercase' }}>Categories</p>
-          <p style={{ margin: '0.5rem 0 0', fontSize: '1.75rem', color: '#fff' }}>7</p>
+        <div style={{ background: '#fafafa', padding: '1.25rem', borderRadius: '8px', border: '1px solid #e5e5e5' }}>
+          <p style={{ margin: 0, color: '#666', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Categories</p>
+          <p style={{ margin: '0.5rem 0 0', fontSize: '1.75rem', color: '#1a1a1a', fontWeight: 600 }}>7</p>
         </div>
-        <div style={{ background: '#141414', padding: '1.25rem', borderRadius: '8px', border: '1px solid #333' }}>
-          <p style={{ margin: 0, color: '#666', fontSize: '0.75rem', textTransform: 'uppercase' }}>Status</p>
-          <p style={{ margin: '0.5rem 0 0', fontSize: '1.5rem', color: '#4ade80' }}>✓ Active</p>
+        <div style={{ background: '#fafafa', padding: '1.25rem', borderRadius: '8px', border: '1px solid #e5e5e5' }}>
+          <p style={{ margin: 0, color: '#666', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Status</p>
+          <p style={{ margin: '0.5rem 0 0', fontSize: '1.5rem', color: '#16a34a', fontWeight: 600 }}>✓ Active</p>
         </div>
       </div>
 
@@ -40,18 +38,18 @@ export default async function SkillsPage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.75rem' }}>
           {skillList.map((skill: any, i: number) => (
             <div key={i} style={{ 
-              background: '#141414', 
+              background: '#fafafa', 
               borderRadius: '8px', 
-              border: '1px solid #333',
+              border: '1px solid #e5e5e5',
               padding: '1rem'
             }}>
-              <div style={{ color: '#fff', fontSize: '0.9rem', fontWeight: 500 }}>{skill.name || skill}</div>
+              <div style={{ color: '#1a1a1a', fontSize: '0.9rem', fontWeight: 500 }}>{skill.name || skill}</div>
               {skill.category && <div style={{ color: '#666', fontSize: '0.75rem', marginTop: '0.25rem' }}>{skill.category}</div>}
             </div>
           ))}
         </div>
       ) : (
-        <div style={{ background: '#141414', borderRadius: '8px', border: '1px solid #333', padding: '3rem', textAlign: 'center' }}>
+        <div style={{ background: '#fafafa', borderRadius: '8px', border: '1px solid #e5e5e5', padding: '3rem', textAlign: 'center' }}>
           <p style={{ margin: 0, color: '#666' }}>No skills found</p>
         </div>
       )}
