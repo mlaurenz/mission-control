@@ -14,6 +14,11 @@ export default async function Home() {
   let kanban = { boards: [] };
 
   let healthError = '';
+  let agentsError = '';
+  let cronError = '';
+  let skillsError = '';
+  let kanbanError = '';
+
   try {
     health = await getHealth();
   } catch (e: any) { 
@@ -23,23 +28,36 @@ export default async function Home() {
 
   try {
     agents = await getAgents();
-  } catch (e) { console.error('agents:', e); }
+  } catch (e: any) { 
+    agentsError = e.message || String(e);
+    console.error('agents:', e); 
+  }
 
   try {
     cron = await getCronJobs();
-  } catch (e) { console.error('cron:', e); }
+  } catch (e: any) { 
+    cronError = e.message || String(e);
+    console.error('cron:', e); 
+  }
 
   try {
     skills = await getSkills();
-  } catch (e) { console.error('skills:', e); }
+  } catch (e: any) { 
+    skillsError = e.message || String(e);
+    console.error('skills:', e); 
+  }
 
   try {
     kanban = await getKanban();
-  } catch (e) { console.error('kanban:', e); }
+  } catch (e: any) { 
+    kanbanError = e.message || String(e);
+    console.error('kanban:', e); 
+  }
 
   return (
     <main style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
       <h1>🚀 Mission Control</h1>
+      <p style={{color: '#666', fontSize: '0.9rem'}}>Bridge: {process.env.HERMES_BRIDGE_URL || 'not set'}</p>
       
       {/* Health Status */}
       <section style={{ margin: '2rem 0', padding: '1rem', border: '1px solid #ccc', borderRadius: '8px' }}>
@@ -57,7 +75,9 @@ export default async function Home() {
       {/* Agents */}
       <section style={{ margin: '2rem 0', padding: '1rem', border: '1px solid #ccc', borderRadius: '8px' }}>
         <h2>Agents / Sessions</h2>
-        {agents.agents?.length > 0 ? (
+        {agentsError ? (
+          <p style={{color: 'red'}}><strong>Error:</strong> {agentsError}</p>
+        ) : agents.agents?.length > 0 ? (
           <ul>
             {agents.agents.map((a: any, i: number) => (
               <li key={i}>{JSON.stringify(a)}</li>
@@ -69,7 +89,9 @@ export default async function Home() {
       {/* Cron Jobs */}
       <section style={{ margin: '2rem 0', padding: '1rem', border: '1px solid #ccc', borderRadius: '8px' }}>
         <h2>Cron Jobs</h2>
-        {cron.cron_jobs?.length > 0 ? (
+        {cronError ? (
+          <p style={{color: 'red'}}><strong>Error:</strong> {cronError}</p>
+        ) : cron.cron_jobs?.length > 0 ? (
           <ul>
             {cron.cron_jobs.map((c: any, i: number) => (
               <li key={i}>{JSON.stringify(c)}</li>
@@ -81,23 +103,29 @@ export default async function Home() {
       {/* Skills */}
       <section style={{ margin: '2rem 0', padding: '1rem', border: '1px solid #ccc', borderRadius: '8px' }}>
         <h2>Skills ({skills.skills?.length || 0})</h2>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-          {skills.skills?.map((s: string, i: number) => (
-            <span key={i} style={{ padding: '0.25rem 0.5rem', background: '#eee', borderRadius: '4px' }}>{s}</span>
-          ))}
-        </div>
+        {skillsError ? (
+          <p style={{color: 'red'}}><strong>Error:</strong> {skillsError}</p>
+        ) : skills.skills?.length > 0 ? (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+            {skills.skills.map((s: string, i: number) => (
+              <span key={i} style={{ padding: '0.25rem 0.5rem', background: '#eee', borderRadius: '4px' }}>{s}</span>
+            ))}
+          </div>
+        ) : <p>No skills</p>}
       </section>
 
       {/* Kanban */}
       <section style={{ margin: '2rem 0', padding: '1rem', border: '1px solid #ccc', borderRadius: '8px' }}>
         <h2>Kanban Boards</h2>
-        {kanban.boards?.length > 0 ? (
+        {kanbanError ? (
+          <p style={{color: 'red'}}><strong>Error:</strong> {kanbanError}</p>
+        ) : kanban.boards?.length > 0 ? (
           <ul>
             {kanban.boards.map((b: any, i: number) => (
               <li key={i}>{b.slug} - {b.name}</li>
             ))}
           </ul>
-        ) : <p>No boards (or parse error)</p>}
+        ) : <p>No boards</p>}
       </section>
     </main>
   );

@@ -3,10 +3,20 @@ const API_KEY = process.env.MISSION_CONTROL_API_KEY;
 const BRIDGE_URL = process.env.HERMES_BRIDGE_URL || 'https://scotch-rendering-sporty.ngrok-free.dev';
 
 async function fetchHermes(endpoint: string) {
+  const apiKey = process.env.MISSION_CONTROL_API_KEY;
+  console.log(`Fetching ${endpoint} from ${BRIDGE_URL} with key: ${apiKey ? 'present' : 'missing'}`);
+  
   const res = await fetch(`${BRIDGE_URL}${endpoint}`, {
-    headers: { 'X-API-Key': API_KEY || '' }
+    headers: { 
+      'X-API-Key': apiKey || '',
+      'Content-Type': 'application/json'
+    }
   });
-  if (!res.ok) throw new Error(`Hermes API error: ${res.status}`);
+  
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Hermes API error: ${res.status} - ${text}`);
+  }
   return res.json();
 }
 
