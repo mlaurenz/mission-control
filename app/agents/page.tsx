@@ -10,17 +10,25 @@ export default async function AgentsPage() {
   try { mcp = await getMCP(); } catch (e) { console.error('MCP error:', e); }
   try { health = await getHealth(); } catch (e) { console.error('Health error:', e); }
 
-  const agents = mcp.servers || [];
+  const mcpAgents = mcp.servers || [];
   const lastUpdate = mcp.timestamp ? new Date(mcp.timestamp).toLocaleString() : 'N/A';
+
+  // Current active model
+  const currentModel = {
+    name: 'MiniMax-M2',
+    provider: 'MiniMax',
+    status: 'active',
+    type: 'model'
+  };
 
   return (
     <main style={{ minHeight: '100vh', background: '#ffffff', color: '#1a1a1a', padding: '2rem' }}>
       <header style={{ marginBottom: '2rem', borderBottom: '2px solid #e5e5e5', paddingBottom: '1rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <h1 style={{ margin: 0, fontSize: '2rem', color: '#1a1a1a', fontWeight: 700 }}>🤖 MCP Agents</h1>
+            <h1 style={{ margin: 0, fontSize: '2rem', color: '#1a1a1a', fontWeight: 700 }}>🤖 Agents</h1>
             <p style={{ margin: '0.5rem 0 0', color: '#666', fontSize: '0.9rem' }}>
-              Model Context Protocol servers connected to Hermes
+              Modelos y agentes activos
             </p>
           </div>
           <div style={{ textAlign: 'right' }}>
@@ -33,35 +41,54 @@ export default async function AgentsPage() {
               fontSize: '0.85rem',
               fontWeight: 600
             }}>
-              {health.status === 'healthy' ? '● Bridge Online' : '● Offline'}
+              {health.status === 'healthy' ? '● Online' : '● Offline'}
             </span>
-            <p style={{ margin: '0.5rem 0 0', color: '#999', fontSize: '0.75rem' }}>Updated: {lastUpdate}</p>
           </div>
         </div>
       </header>
 
-      {/* Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '2rem' }}>
-        <div style={{ background: '#fafafa', padding: '1.25rem', borderRadius: '8px', border: '1px solid #e5e5e5', textAlign: 'center' }}>
-          <p style={{ margin: 0, color: '#666', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>Total Agents</p>
-          <p style={{ margin: '0.5rem 0 0', fontSize: '2rem', color: '#1a1a1a', fontWeight: 700 }}>{agents.length}</p>
+      {/* Current Active Model */}
+      <section style={{ marginBottom: '2rem' }}>
+        <h2 style={{ fontSize: '1rem', color: '#666', marginBottom: '1rem', textTransform: 'uppercase', fontWeight: 600 }}>
+          Modelo Activo
+        </h2>
+        <div style={{ 
+          background: '#f0fdf4', 
+          border: '2px solid #86efac', 
+          borderRadius: '12px', 
+          padding: '1.5rem',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{ fontSize: '1.5rem' }}>🧠</span>
+              <span style={{ fontSize: '1.5rem', fontWeight: 700, color: '#166534' }}>{currentModel.name}</span>
+            </div>
+            <p style={{ margin: '0.5rem 0 0', color: '#166534', fontSize: '0.9rem' }}>{currentModel.provider}</p>
+          </div>
+          <span style={{ 
+            padding: '0.5rem 1rem', 
+            background: '#166534', 
+            color: '#fff', 
+            borderRadius: '6px',
+            fontWeight: 600,
+            fontSize: '0.85rem'
+          }}>
+            ACTIVO
+          </span>
         </div>
-        <div style={{ background: '#f0fdf4', padding: '1.25rem', borderRadius: '8px', border: '1px solid #bbf7d0', textAlign: 'center' }}>
-          <p style={{ margin: 0, color: '#16a34a', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>Enabled</p>
-          <p style={{ margin: '0.5rem 0 0', fontSize: '2rem', color: '#16a34a', fontWeight: 700 }}>{agents.filter((a: any) => a.enabled).length}</p>
-        </div>
-        <div style={{ background: '#fafafa', padding: '1.25rem', borderRadius: '8px', border: '1px solid #e5e5e5', textAlign: 'center' }}>
-          <p style={{ margin: 0, color: '#666', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>Model</p>
-          <p style={{ margin: '0.5rem 0 0', fontSize: '1.25rem', color: '#2563eb', fontWeight: 600 }}>MiniMax-M2</p>
-        </div>
-      </div>
+      </section>
 
-      {/* Agents Grid */}
+      {/* MCP Agents */}
       <section>
-        <h2 style={{ fontSize: '1.1rem', color: '#1a1a1a', marginBottom: '1rem', fontWeight: 600 }}>Connected Agents</h2>
-        {agents.length > 0 ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
-            {agents.map((agent: any, i: number) => (
+        <h2 style={{ fontSize: '1rem', color: '#666', marginBottom: '1rem', textTransform: 'uppercase', fontWeight: 600 }}>
+          MCP Agents ({mcpAgents.length})
+        </h2>
+        {mcpAgents.length > 0 ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+            {mcpAgents.map((agent: any, i: number) => (
               <div key={i} style={{ 
                 background: '#fafafa', 
                 padding: '1.25rem', 
@@ -71,27 +98,26 @@ export default async function AgentsPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
                   <span style={{ fontSize: '1.1rem', fontWeight: 600, color: '#1a1a1a' }}>{agent.name}</span>
                   <span style={{ 
-                    padding: '0.25rem 0.5rem', 
+                    padding: '0.2rem 0.5rem', 
                     borderRadius: '4px', 
                     background: agent.enabled ? '#dcfce7' : '#fee2e2',
                     color: agent.enabled ? '#166534' : '#dc2626',
-                    fontSize: '0.7rem',
+                    fontSize: '0.65rem',
                     fontWeight: 600
                   }}>
-                    {agent.enabled ? 'ENABLED' : 'DISABLED'}
+                    {agent.enabled ? '✓' : '✗'}
                   </span>
                 </div>
-                <div style={{ fontSize: '0.8rem', color: '#666' }}>
-                  <p style={{ margin: '0.25rem 0' }}><strong>Transport:</strong> {agent.transport}</p>
-                  <p style={{ margin: '0.25rem 0' }}><strong>Tools:</strong> {agent.tools}</p>
-                  <p style={{ margin: '0.25rem 0' }}><strong>Status:</strong> {agent.status}</p>
+                <div style={{ fontSize: '0.75rem', color: '#666' }}>
+                  <p style={{ margin: '0.2rem 0' }}><strong>Tools:</strong> {agent.tools}</p>
+                  <p style={{ margin: '0.2rem 0', wordBreak: 'break-all' }}><strong>Transport:</strong> {agent.transport}</p>
                 </div>
               </div>
             ))}
           </div>
         ) : (
           <div style={{ background: '#fafafa', padding: '2rem', borderRadius: '8px', textAlign: 'center' }}>
-            <p style={{ color: '#666', margin: 0 }}>No MCP agents configured</p>
+            <p style={{ color: '#666', margin: 0 }}>No hay agentes MCP configurados</p>
           </div>
         )}
       </section>
