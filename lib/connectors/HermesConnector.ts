@@ -53,3 +53,11 @@ export async function getGatewayStatus() {
 export async function getMCP() {
   return fetchHermes('/mcp');
 }
+
+export async function getActivity() {
+  return fetchHermes('/activity');
+}
+
+export async function getCodeStats() {
+  return fetchHermes('/code-stats');
+}
