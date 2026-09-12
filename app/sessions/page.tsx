@@ -33,7 +33,8 @@ export default async function SessionsPage() {
   });
 
   // Get unique platforms
-  const platforms = [...new Set(allSessions.map((s: any) => s.platform).filter(Boolean))];
+  const platformSet = new Set(allSessions.map((s: any) => s.platform).filter(Boolean));
+  const platforms = Array.from(platformSet);
 
   return (
     <main style={{ minHeight: '100vh', background: '#ffffff', color: '#1a1a1a', padding: '2rem' }}>
