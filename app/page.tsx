@@ -13,9 +13,13 @@ export default async function Home() {
   let skills = { skills: [] };
   let kanban = { boards: [] };
 
+  let healthError = '';
   try {
     health = await getHealth();
-  } catch (e) { console.error('health:', e); }
+  } catch (e: any) { 
+    healthError = e.message || String(e);
+    console.error('health:', e); 
+  }
 
   try {
     agents = await getAgents();
@@ -40,8 +44,14 @@ export default async function Home() {
       {/* Health Status */}
       <section style={{ margin: '2rem 0', padding: '1rem', border: '1px solid #ccc', borderRadius: '8px' }}>
         <h2>System Status</h2>
-        <p><strong>Status:</strong> {health.status}</p>
-        <p><strong>Last Update:</strong> {health.timestamp ? new Date(health.timestamp).toLocaleString() : 'N/A'}</p>
+        {healthError ? (
+          <p style={{color: 'red'}}><strong>Error:</strong> {healthError}</p>
+        ) : (
+          <>
+            <p><strong>Status:</strong> {health.status}</p>
+            <p><strong>Last Update:</strong> {health.timestamp ? new Date(health.timestamp).toLocaleString() : 'N/A'}</p>
+          </>
+        )}
       </section>
 
       {/* Agents */}
