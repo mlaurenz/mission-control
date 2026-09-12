@@ -112,8 +112,8 @@ export default async function CodePage() {
                     {a.description}
                   </div>
                 </div>
-                <div style={{ color: '#666', fontSize: '0.7rem', whiteSpace: 'nowrap' }}>
-                  {a.timestamp || a.status || ''}
+              <div style={{ color: '#666', fontSize: '0.7rem', whiteSpace: 'nowrap' }}>
+                  {a.timestamp ? new Date(a.timestamp).toLocaleDateString('es-AR') : a.status || ''}
                 </div>
               </div>
             )) : (
