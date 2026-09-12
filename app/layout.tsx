@@ -84,6 +84,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             }}>
               ⏰ Schedule
             </a>
+            <a href="/kanban" style={{ 
+              display: 'block', 
+              padding: '0.75rem 1rem', 
+              color: '#1a1a1a', 
+              textDecoration: 'none',
+              borderRadius: '6px',
+              fontSize: '0.9rem',
+              fontWeight: 500,
+              marginBottom: '0.25rem'
+            }}>
+              📋 Kanban
+            </a>
             <a href="/system" style={{ 
               display: 'block', 
               padding: '0.75rem 1rem', 
