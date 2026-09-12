@@ -1,6 +1,6 @@
 // lib/connectors/HermesConnector.ts
 const API_KEY = process.env.MISSION_CONTROL_API_KEY;
-const BRIDGE_URL = process.env.HERMES_BRIDGE_URL || 'http://localhost:3001';
+const BRIDGE_URL = process.env.HERMES_BRIDGE_URL || 'https://scotch-rendering-sporty.ngrok-free.dev';
 
 async function fetchHermes(endpoint: string) {
   const res = await fetch(`${BRIDGE_URL}${endpoint}`, {
