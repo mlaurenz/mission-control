@@ -1,28 +1,49 @@
-// app/code/page.tsx - Code & Activity Page with Tailwind
-import { getCodeStats, getActivity } from '../../lib/connectors/HermesConnector';
-import PageHeader from '../components/PageHeader';
-
+'use client';
 export const dynamic = 'force-dynamic';
+// app/code/page.tsx - Code & Activity with auto-refresh
+import PageHeader from '../components/PageHeader';
+import RefreshIndicator from '../components/RefreshIndicator';
+import { useAutoRefresh } from '../components/useAutoRefresh';
 
-export default async function CodePage() {
-  let codeStats = { code_stats: [] as any[] };
-  let activity = { activity: [] as any[] };
+interface CodeData {
+  codeStats: any;
+  activity: any;
+}
 
-  try { codeStats = (await getCodeStats()) || codeStats; } catch {}
-  try { activity = (await getActivity()) || activity; } catch {}
+export default function CodePage() {
+  const { data, loading, lastUpdated, refetch } = useAutoRefresh<CodeData>({
+    url: '/api/code',
+    interval: 15000,
+  });
 
-  const totalLines = codeStats.code_stats?.reduce((acc: number, p: any) => acc + (p.lines || 0), 0) || 0;
-  const totalFiles = codeStats.code_stats?.reduce((acc: number, p: any) => acc + (p.files || 0), 0) || 0;
+  const codeStatsList = data?.codeStats?.code_stats || [];
+  const activityList = data?.activity?.activity || [];
 
-  const sortedActivity = [...(activity.activity || [])].sort((a: any, b: any) => {
+  const totalLines = codeStatsList.reduce((acc: number, p: any) => acc + (p.lines || 0), 0);
+  const totalFiles = codeStatsList.reduce((acc: number, p: any) => acc + (p.files || 0), 0);
+
+  const sortedActivity = [...activityList].sort((a: any, b: any) => {
     if (a.type === 'session' && b.type !== 'session') return -1;
     if (a.type !== 'session' && b.type === 'session') return 1;
     return 0;
   });
 
+  if (loading && !data) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="inline-block w-8 h-8 border-4 border-gray-200 border-t-blue-500 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div>
-      <PageHeader title="Code & Activity" icon="💻" subtitle="Project stats and activity" />
+      <PageHeader
+        title="Code & Activity"
+        icon="💻"
+        subtitle="Project stats and activity"
+        rightContent={<RefreshIndicator lastUpdated={lastUpdated} loading={loading} onRefresh={refetch} />}
+      />
 
       {/* Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
@@ -36,20 +57,19 @@ export default async function CodePage() {
         </div>
         <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
           <p className="text-xs text-gray-500 uppercase tracking-wider">Projects</p>
-          <p className="text-2xl font-semibold text-gray-900 mt-1">{codeStats.code_stats?.length || 0}</p>
+          <p className="text-2xl font-semibold text-gray-900 mt-1">{codeStatsList.length}</p>
         </div>
       </div>
 
       {/* Two-column layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-
         {/* Code by Project */}
         <div className="bg-gray-50 rounded-lg border border-gray-200">
           <div className="px-4 py-3 border-b border-gray-200">
             <h2 className="text-sm font-semibold text-gray-900">📁 Code by Project</h2>
           </div>
           <div className="p-2">
-            {codeStats.code_stats?.length > 0 ? codeStats.code_stats.map((p: any, i: number) => (
+            {codeStatsList.length > 0 ? codeStatsList.map((p: any, i: number) => (
               <div key={i} className="flex items-center justify-between px-3 py-3 bg-white rounded-md border border-gray-200 mb-1">
                 <div>
                   <div className="text-sm font-medium text-gray-900">{p.project}</div>
@@ -74,14 +94,12 @@ export default async function CodePage() {
           </div>
           <div className="max-h-96 overflow-y-auto p-2">
             {sortedActivity.length > 0 ? sortedActivity.map((a: any, i: number) => (
-              <div key={i} className={`
-                flex items-center gap-3 px-3 py-2 bg-white rounded-md mb-1
-                border-l-[3px] ${a.type === 'session' ? 'border-l-green-500' : 'border-l-yellow-500'}
-              `}>
-                <span className={`
-                  px-2 py-0.5 rounded text-[0.65rem] uppercase font-medium
-                  ${a.type === 'session' ? 'bg-green-100 text-green-600' : 'bg-yellow-100 text-yellow-600'}
-                `}>
+              <div key={i} className={`flex items-center gap-3 px-3 py-2 bg-white rounded-md mb-1 border-l-[3px] ${
+                a.type === 'session' ? 'border-l-green-500' : 'border-l-yellow-500'
+              }`}>
+                <span className={`px-2 py-0.5 rounded text-[0.65rem] uppercase font-medium ${
+                  a.type === 'session' ? 'bg-green-100 text-green-600' : 'bg-yellow-100 text-yellow-600'
+                }`}>
                   {a.type}
                 </span>
                 <div className="flex-1 min-w-0">

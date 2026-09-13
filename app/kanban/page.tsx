@@ -1,27 +1,35 @@
-// app/kanban/page.tsx - Kanban Board with Tailwind
-import { getKanbanBoards, getKanbanTasks } from '../../lib/connectors/HermesConnector';
+'use client';
+export const dynamic = 'force-dynamic';
+// app/kanban/page.tsx - Kanban with auto-refresh
 import PageHeader from '../components/PageHeader';
 import OfflineBanner from '../components/OfflineBanner';
+import RefreshIndicator from '../components/RefreshIndicator';
+import { useAutoRefresh } from '../components/useAutoRefresh';
 
-export const dynamic = 'force-dynamic';
+interface KanbanData {
+  kanbanBoards: any;
+  kanbanTasks: any;
+}
 
-export default async function KanbanPage() {
-  const boards = await getKanbanBoards();
-  const tasks = await getKanbanTasks();
+const COLUMNS = ['todo', 'ready', 'running', 'blocked', 'review', 'done', 'archived'];
+const columnLabels: Record<string, string> = {
+  todo: 'TODO', ready: 'READY', running: 'IN PROGRESS',
+  blocked: 'BLOCKED', review: 'REVIEW', done: 'DONE', archived: 'ARCHIVED'
+};
+const columnColors: Record<string, string> = {
+  todo: 'border-gray-300', ready: 'border-blue-400', running: 'border-yellow-400',
+  blocked: 'border-red-500', review: 'border-orange-400', done: 'border-green-500', archived: 'border-gray-400'
+};
 
-  const tasksList = tasks?.tasks || [];
-  const boardsList = boards?.boards || [];
-  const isOffline = !tasks;
+export default function KanbanPage() {
+  const { data, loading, lastUpdated, refetch } = useAutoRefresh<KanbanData>({
+    url: '/api/tasks',
+    interval: 10000,
+  });
 
-  const COLUMNS = ['todo', 'ready', 'running', 'blocked', 'review', 'done', 'archived'];
-  const columnLabels: Record<string, string> = {
-    todo: 'TODO', ready: 'READY', running: 'IN PROGRESS',
-    blocked: 'BLOCKED', review: 'REVIEW', done: 'DONE', archived: 'ARCHIVED'
-  };
-  const columnColors: Record<string, string> = {
-    todo: 'border-gray-300', ready: 'border-blue-400', running: 'border-yellow-400',
-    blocked: 'border-red-500', review: 'border-orange-400', done: 'border-green-500', archived: 'border-gray-400'
-  };
+  const tasksList = data?.kanbanTasks?.tasks || [];
+  const boardsList = data?.kanbanBoards?.boards || [];
+  const isOffline = data && !data.kanbanTasks;
 
   const tasksByBoard: Record<string, Record<string, any[]>> = {};
   boardsList.forEach((b: any) => {
@@ -34,19 +42,28 @@ export default async function KanbanPage() {
     if (tasksByBoard[board]?.[status]) tasksByBoard[board][status].push(t);
   });
 
+  if (loading && !data) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="inline-block w-8 h-8 border-4 border-gray-200 border-t-blue-500 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div>
       <PageHeader
         title="Kanban Board"
         icon="📌"
-        subtitle={isOffline ? '⚠️ Bridge offline' : 'Todas las tareas de Hermes'}
+        subtitle={isOffline ? '⚠️ Bridge offline' : `${tasksList.length} tareas en ${boardsList.length} boards`}
         rightContent={
-          <div className="flex gap-1.5 flex-wrap">
+          <div className="flex items-center gap-3 flex-wrap">
             {boardsList.map((board: any) => (
               <span key={board.slug} className="px-2.5 py-1 bg-gray-100 rounded-md text-xs font-semibold text-gray-600">
                 {board.name || board.slug} ({board.total || 0})
               </span>
             ))}
+            <RefreshIndicator lastUpdated={lastUpdated} loading={loading} onRefresh={refetch} />
           </div>
         }
       />
@@ -69,7 +86,6 @@ export default async function KanbanPage() {
                   </h2>
                   <span className="text-sm text-gray-500">{totalBoardTasks} tareas</span>
                 </div>
-
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2">
                   {COLUMNS.map(col => {
                     const colTasks = boardTasks[col] || [];

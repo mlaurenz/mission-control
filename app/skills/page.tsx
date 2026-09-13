@@ -1,21 +1,41 @@
-// app/skills/page.tsx - Skills Page with Tailwind
-import { getSkills } from '../../lib/connectors/HermesConnector';
+'use client';
+export const dynamic = 'force-dynamic';
+// app/skills/page.tsx - Skills with auto-refresh
 import PageHeader from '../components/PageHeader';
+import RefreshIndicator from '../components/RefreshIndicator';
+import { useAutoRefresh } from '../components/useAutoRefresh';
 import { categorizeSkills, CAT_LABELS } from '../../lib/utils/skills';
 
-export const dynamic = 'force-dynamic';
+interface SkillsData {
+  skills: any;
+}
 
-export default async function SkillsPage() {
-  let skills = { skills: [] as string[] };
-  try { skills = (await getSkills()) || skills; } catch {}
+export default function SkillsPage() {
+  const { data, loading, lastUpdated, refetch } = useAutoRefresh<SkillsData>({
+    url: '/api/skills',
+    interval: 30000,
+  });
 
-  const skillList = skills.skills || [];
+  const skillList = data?.skills?.skills || [];
   const categorized = categorizeSkills(skillList);
   const sortedCats = Object.keys(categorized).sort();
 
+  if (loading && !data) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="inline-block w-8 h-8 border-4 border-gray-200 border-t-blue-500 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div>
-      <PageHeader title="Skills" icon="🔧" subtitle="Hermes skills installed" />
+      <PageHeader
+        title="Skills"
+        icon="🔧"
+        subtitle={`${skillList.length} skills installed`}
+        rightContent={<RefreshIndicator lastUpdated={lastUpdated} loading={loading} onRefresh={refetch} />}
+      />
 
       {/* Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
