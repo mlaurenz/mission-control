@@ -3,6 +3,21 @@ import { getHealth, getSessions, getCron, getKanbanBoards, getKanbanTasks, getSk
 
 export const dynamic = 'force-dynamic';
 
+// Hardcoded profiles - always show these
+const PROFILES = [
+  { name: 'default', model: 'MiniMax-M2', status: 'active' },
+  { name: 'automation', model: 'MiniMax-M2', status: 'stopped' },
+  { name: 'coder', model: 'openai/gpt-5.6-sol', status: 'stopped' },
+  { name: 'consultant', model: 'MiniMax-M2', status: 'stopped' },
+  { name: 'creator', model: 'MiniMax-M2', status: 'stopped' },
+  { name: 'designer', model: 'MiniMax-M2', status: 'stopped' },
+  { name: 'editor', model: 'MiniMax-M2', status: 'stopped' },
+  { name: 'orchestrator', model: 'MiniMax-M2', status: 'stopped' },
+  { name: 'pm', model: 'MiniMax-M2', status: 'stopped' },
+  { name: 'research', model: 'MiniMax-M2', status: 'stopped' },
+  { name: 'social', model: 'MiniMax-M2', status: 'stopped' },
+];
+
 // Hardcoded MCP agents - always show these
 const MCP_AGENTS = [
   { enabled: true, name: 'octopush', status: 'enabled', tools: 'all', transport: 'https://octopushon.us/api' },
@@ -73,21 +88,25 @@ export default async function Home() {
 
       {/* Stats Grid */}
       <section style={{ marginBottom: '2rem' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '1rem' }}>
           
           {/* Model */}
           <div style={{ background: '#f0fdf4', padding: '1.25rem', borderRadius: '8px', border: '2px solid #86efac', textAlign: 'center' }}>
             <p style={{ margin: 0, color: '#166534', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>Active Model</p>
-            <p style={{ margin: '0.5rem 0 0', fontSize: '1.5rem', color: '#166534', fontWeight: 700 }}>MiniMax-M2</p>
-            <p style={{ margin: 0, color: '#86efac', fontSize: '0.7rem' }}>🧠</p>
+            <p style={{ margin: '0.5rem 0 0', fontSize: '1.2rem', color: '#166534', fontWeight: 700 }}>MiniMax-M2</p>
+          </div>
+
+          {/* Profiles */}
+          <div style={{ background: '#fef3c7', padding: '1.25rem', borderRadius: '8px', border: '2px solid #fbbf24', textAlign: 'center' }}>
+            <p style={{ margin: 0, color: '#92400e', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>Profiles</p>
+            <p style={{ margin: '0.5rem 0 0', fontSize: '1.2rem', color: '#92400e', fontWeight: 700 }}>{PROFILES.length}</p>
           </div>
 
           {/* MCP Agents */}
           <div style={{ background: '#f0f9ff', padding: '1.25rem', borderRadius: '8px', border: '2px solid #7dd3fc', textAlign: 'center' }}>
             <p style={{ margin: 0, color: '#0369a1', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>MCP Agents</p>
-            <p style={{ margin: '0.5rem 0 0', fontSize: '1.5rem', color: '#0369a1', fontWeight: 700 }}>{MCP_AGENTS.length}</p>
-            <p style={{ margin: 0, color: '#7dd3fc', fontSize: '0.7rem' }}>🤖</p>
-          </div>
+            <p style={{ margin: '0.5rem 0 0', fontSize: '1.2rem', color: '#0369a1', fontWeight: 700 }}>{MCP_AGENTS.length}</p>
+           </div>
 
           {/* Total Tasks */}
           <div style={{ background: '#fafafa', padding: '1.25rem', borderRadius: '8px', border: '1px solid #e5e5e5', textAlign: 'center' }}>
@@ -234,6 +253,26 @@ export default async function Home() {
               }}>
                 <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#0369a1' }}>{agent.name}</span>
                 <span style={{ fontSize: '0.75rem', color: '#16a34a', background: '#dcfce7', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>✓ {agent.status}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Profiles */}
+        <section style={{ background: '#fef3c7', padding: '1.5rem', borderRadius: '8px', border: '2px solid #fbbf24' }}>
+          <h2 style={{ fontSize: '1rem', color: '#92400e', marginBottom: '1rem', fontWeight: 600 }}>👤 Profiles ({PROFILES.length})</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.5rem' }}>
+            {PROFILES.map((profile: any, i: number) => (
+              <div key={i} style={{ 
+                padding: '0.5rem', 
+                background: '#fff', 
+                borderRadius: '6px', 
+                border: profile.status === 'active' ? '2px solid #16a34a' : '1px solid #fbbf24',
+              }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 600, color: profile.status === 'active' ? '#16a34a' : '#92400e' }}>
+                  {profile.status === 'active' ? '● ' : '○ '}{profile.name}
+                </span>
+                <span style={{ fontSize: '0.7rem', color: '#666', display: 'block' }}>{profile.model}</span>
               </div>
             ))}
           </div>
