@@ -3,6 +3,23 @@ import { getSessions, getHealth } from '@/lib/connectors/HermesConnector';
 
 export const dynamic = 'force-dynamic';
 
+function timeAgo(ts: string): string {
+  if (!ts) return 'N/A';
+  // If already a relative string (e.g. "5m ago", "2h ago"), return as-is
+  if (/^\d+\s*[mhd]\s*ago$/i.test(ts.trim())) return ts.trim();
+  const date = new Date(ts.includes('_') ? ts.replace(/_/g, ' ') : ts);
+  if (isNaN(date.getTime())) return ts.substring(0, 12);
+  const diff = Date.now() - date.getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return `${days}d ago`;
+  return date.toLocaleDateString();
+}
+
 export default async function SessionsPage() {
   let health = { status: 'unknown', timestamp: '' };
   let sessions = { sessions: [] };
@@ -11,28 +28,27 @@ export default async function SessionsPage() {
   try { sessions = await getSessions(); } catch (e) { console.error(e); }
 
   const allSessions = sessions.sessions || [];
-  
-  // Sort by recency (most recent first)
+
+  // Sort by recency
   const sortedSessions = [...allSessions].sort((a: any, b: any) => {
-    // Extract timestamp from last_active
     const parseTime = (t: string) => {
       if (!t) return 0;
-      const now = new Date();
-      if (t.includes('now')) return now.getTime();
-      const match = t.match(/(\d+)\s*(m|h|d)\s*ago/);
-      if (match) {
+      if (/^\d+\s*[mhd]\s*ago$/i.test(t.trim())) {
+        const match = t.match(/(\d+)\s*([mhd])/i);
+        if (!match) return 0;
         const val = parseInt(match[1]);
-        const unit = match[2];
-        if (unit === 'm') return now.getTime() - val * 60 * 1000;
-        if (unit === 'h') return now.getTime() - val * 60 * 60 * 1000;
-        if (unit === 'd') return now.getTime() - val * 24 * 60 * 60 * 1000;
+        const unit = match[2].toLowerCase();
+        const now = Date.now();
+        if (unit === 'm') return now - val * 60000;
+        if (unit === 'h') return now - val * 3600000;
+        if (unit === 'd') return now - val * 86400000;
       }
-      return 0;
+      const date = new Date(t.includes('_') ? t.replace(/_/g, ' ') : t);
+      return isNaN(date.getTime()) ? 0 : date.getTime();
     };
     return parseTime(b.last_active) - parseTime(a.last_active);
   });
 
-  // Get unique platforms
   const platformSet = new Set(allSessions.map((s: any) => s.platform).filter(Boolean));
   const platforms = Array.from(platformSet);
 
@@ -47,14 +63,11 @@ export default async function SessionsPage() {
             </p>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <span style={{ 
-              display: 'inline-block', 
-              padding: '0.5rem 1rem', 
-              borderRadius: '6px', 
+            <span style={{
+              display: 'inline-block', padding: '0.5rem 1rem', borderRadius: '6px',
               background: health.status === 'healthy' ? '#dcfce7' : '#fee2e2',
               color: health.status === 'healthy' ? '#166534' : '#dc2626',
-              fontSize: '0.85rem',
-              fontWeight: 600
+              fontSize: '0.85rem', fontWeight: 600
             }}>
               {health.status === 'healthy' ? '● Bridge Online' : '● Offline'}
             </span>
@@ -98,26 +111,22 @@ export default async function SessionsPage() {
             <tbody>
               {sortedSessions.slice(0, 20).map((s: any, i: number) => (
                 <tr key={i} style={{ borderBottom: '1px solid #e5e5e5' }}>
-                  <td style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#1a1a1a' }}>
-                    {s.title || 'Untitled'}
-                  </td>
+                  <td style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#1a1a1a' }}>{s.title || 'Untitled'}</td>
                   <td style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>
-                    <span style={{ 
-                      padding: '0.2rem 0.5rem', 
-                      borderRadius: '4px', 
+                    <span style={{
+                      padding: '0.2rem 0.5rem', borderRadius: '4px',
                       background: s.platform === 'telegram' ? '#e0f2fe' : s.platform === 'discord' ? '#f3e8ff' : '#f1f5f9',
                       color: s.platform === 'telegram' ? '#0369a1' : s.platform === 'discord' ? '#7c3aed' : '#475569',
-                      fontSize: '0.7rem',
-                      fontWeight: 600
+                      fontSize: '0.7rem', fontWeight: 600
                     }}>
                       {s.platform?.toUpperCase() || 'N/A'}
                     </span>
                   </td>
-                  <td style={{ padding: '0.75rem 1rem', textAlign: 'center', fontSize: '0.75rem', color: '#666', fontFamily: 'monospace' }}>
-                    {s.chat_id || 'N/A'}
-                  </td>
-                  <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontSize: '0.8rem', color: '#666' }}>
-                    {s.last_active || 'N/A'}
+                  <td style={{ padding: '0.75rem 1rem', textAlign: 'center', fontSize: '0.75rem', color: '#666', fontFamily: 'monospace' }}>{s.chat_id || 'N/A'}</td>
+                  <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>
+                    <span style={{ fontSize: '0.75rem', color: '#666', background: '#f0f0f0', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>
+                      {timeAgo(s.last_active)}
+                    </span>
                   </td>
                 </tr>
               ))}
