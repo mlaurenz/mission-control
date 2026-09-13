@@ -155,18 +155,22 @@ export default async function Home() {
           </div>
 
           {/* Running */}
-          <div style={{ background: '#fffbeb', padding: '1.25rem', borderRadius: '8px', border: '1px solid #fde68a', textAlign: 'center' }}>
-            <p style={{ margin: 0, color: '#d97706', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>Running</p>
-            <p style={{ margin: '0.5rem 0 0', fontSize: '2rem', color: '#d97706', fontWeight: 700 }}>{taskCounts.running}</p>
-            <p style={{ margin: 0, color: '#fbbf24', fontSize: '0.7rem' }}>in progress</p>
-          </div>
+          {taskCounts.running > 0 && (
+            <div style={{ background: '#fffbeb', padding: '1.25rem', borderRadius: '8px', border: '1px solid #fde68a', textAlign: 'center', opacity: 0.6 }}>
+              <p style={{ margin: 0, color: '#d97706', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>Running</p>
+              <p style={{ margin: '0.5rem 0 0', fontSize: '2rem', color: '#d97706', fontWeight: 700 }}>{taskCounts.running}</p>
+              <p style={{ margin: 0, color: '#fbbf24', fontSize: '0.7rem' }}>in progress</p>
+            </div>
+          )}
 
           {/* Done */}
-          <div style={{ background: '#f0fdf4', padding: '1.25rem', borderRadius: '8px', border: '1px solid #bbf7d0', textAlign: 'center' }}>
-            <p style={{ margin: 0, color: '#16a34a', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>Done</p>
-            <p style={{ margin: '0.5rem 0 0', fontSize: '2rem', color: '#16a34a', fontWeight: 700 }}>{taskCounts.done}</p>
-            <p style={{ margin: 0, color: '#4ade80', fontSize: '0.7rem' }}>completed</p>
-          </div>
+          {taskCounts.done > 0 && (
+            <div style={{ background: '#f0fdf4', padding: '1.25rem', borderRadius: '8px', border: '1px solid #bbf7d0', textAlign: 'center', opacity: 0.6 }}>
+              <p style={{ margin: 0, color: '#16a34a', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>Done</p>
+              <p style={{ margin: '0.5rem 0 0', fontSize: '2rem', color: '#16a34a', fontWeight: 700 }}>{taskCounts.done}</p>
+              <p style={{ margin: 0, color: '#4ade80', fontSize: '0.7rem' }}>completed</p>
+            </div>
+          )}
         </div>
       </section>
 
