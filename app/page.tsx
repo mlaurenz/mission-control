@@ -1,25 +1,64 @@
 'use client';
 export const dynamic = 'force-dynamic';
-// app/page.tsx - Dashboard with auto-refresh, no hardcoded data
+// app/page.tsx - Dashboard: "What is Hermes doing right now?"
 import PageHeader from './components/PageHeader';
 import StatCard from './components/StatCard';
 import Card from './components/Card';
 import RefreshIndicator from './components/RefreshIndicator';
 import { useAutoRefresh } from './components/useAutoRefresh';
 import { timeAgo } from '../lib/utils/time';
-import { categorizeSkills, CAT_LABELS } from '../lib/utils/skills';
-import Link from 'next/link';
 
 interface DashboardData {
   health: any;
   sessions: any;
-  cron: any;
   kanbanBoards: any;
   kanbanTasks: any;
-  skills: any;
-  mcp: any;
-  profiles: any;
-  config: any;
+  activity: any;
+  gatewayStatus: any;
+  logs: any;
+}
+
+function parseGatewayStatus(raw: string | undefined) {
+  if (!raw) return null;
+  const result: { status: string; uptime: string; memory: string; memoryPeak: string; cpu: string; processes: string[]; warnings: string[] } = {
+    status: 'unknown', uptime: '', memory: '', memoryPeak: '', cpu: '', processes: [], warnings: [],
+  };
+  
+  const lines = raw.split('\n');
+  for (const line of lines) {
+    if (line.includes('Active:')) {
+      const m = line.match(/Active:\s*(\S+)/);
+      if (m) result.status = m[1];
+      const since = line.match(/since\s+(.+)/);
+      if (since) result.uptime = since[1].trim().replace(/;.*/, '').trim();
+    }
+    if (line.includes('Memory:') && !line.includes('peak')) {
+      const m = line.match(/Memory:\s*(.+)/);
+      if (m) result.memory = m[1].trim();
+    }
+    if (line.includes('peak')) {
+      const m = line.match(/peak:\s*(\S+)/);
+      if (m) result.memoryPeak = m[1];
+    }
+    if (line.includes('CPU:')) {
+      const m = line.match(/CPU:\s*(.+)/);
+      if (m) result.cpu = m[1].trim();
+    }
+    if (line.match(/[├└─│].*\d/)) {
+      result.processes.push(line.trim().replace(/^[├└─│\s]+/, ''));
+    }
+    if (/warn|error/i.test(line) && !line.includes('Active:')) {
+      result.warnings.push(line.trim());
+    }
+  }
+  return result;
+}
+
+function StatusDot({ status }: { status: string }) {
+  const isHealthy = status === 'healthy' || status === 'active';
+  return (
+    <span className={`inline-block w-2 h-2 rounded-full ${isHealthy ? 'bg-green-500' : 'bg-red-500'}`} />
+  );
 }
 
 export default function Home() {
@@ -30,36 +69,37 @@ export default function Home() {
 
   const health = data?.health || { status: 'unknown', timestamp: '' };
   const sessions = data?.sessions?.sessions || [];
-  const cronJobs = data?.cron?.cron_jobs || [];
   const boards = data?.kanbanBoards?.boards || [];
   const tasks = data?.kanbanTasks?.tasks || [];
-  const skillList = data?.skills?.skills || [];
-  const mcpServers = data?.mcp?.servers || [];
-  const profiles = data?.profiles?.profiles || [];
-  const config = data?.config || {};
-
-  // Active model from config or first active profile
-  const activeModel = config?.model || profiles.find((p: any) => p.status === 'active')?.model || '—';
+  const activityEvents = data?.activity?.activity || [];
+  const logLines = data?.logs?.logs || [];
+  const gatewayRaw = data?.gatewayStatus?.raw;
+  const gateway = parseGatewayStatus(gatewayRaw);
 
   // Task counts
-  const counts: Record<string, number> = { todo: 0, ready: 0, running: 0, blocked: 0, review: 0, done: 0 };
+  const counts: Record<string, number> = { todo: 0, ready: 0, blocked: 0, done: 0, archived: 0 };
   tasks.forEach((t: any) => {
     const s = t.status?.toLowerCase() || 'todo';
     if (counts[s] !== undefined) counts[s]++;
   });
 
-  // Board stats
-  const boardStats: Record<string, { done: number; total: number }> = {};
-  tasks.forEach((t: any) => {
-    const board = t.board?.name || t.boardName || t.board || 'unknown';
-    if (!boardStats[board]) boardStats[board] = { done: 0, total: 0 };
-    boardStats[board].total++;
-    if (t.status?.toLowerCase() === 'done') boardStats[board].done++;
-  });
+  const activeBoards = boards.filter((b: any) => !b.archived);
 
-  const recentSessions = sessions.slice(0, 8);
-  const categorized = categorizeSkills(skillList);
-  const sortedCats = Object.keys(categorized).sort();
+  // Combined activity + logs for feed
+  const feedItems: { type: string; text: string; time: string; level?: string }[] = [];
+  activityEvents.forEach((a: any) => {
+    feedItems.push({ type: 'event', text: a.description, time: a.timestamp || '' });
+  });
+  logLines.forEach((line: string) => {
+    let level = 'info';
+    if (/error/i.test(line)) level = 'error';
+    else if (/warn/i.test(line)) level = 'warning';
+    const timeMatch = line.match(/\d{4}-\d{2}-\d{2}[\sT]\d{2}:\d{2}:\d{2}/);
+    feedItems.push({ type: 'log', text: line, time: timeMatch ? timeMatch[0] : '', level });
+  });
+  feedItems.sort((a, b) => (b.time || '').localeCompare(a.time || ''));
+
+  const recentSessions = sessions.slice(0, 6);
 
   if (loading && !data) {
     return (
@@ -75,166 +115,193 @@ export default function Home() {
   return (
     <div>
       <PageHeader
-        title="Mission Control"
+        title="Overview"
         subtitle="Hermes Operations Dashboard"
         status={health.status === 'healthy' ? 'online' : 'offline'}
         statusTimestamp={health.timestamp}
         rightContent={<RefreshIndicator lastUpdated={lastUpdated} loading={loading} onRefresh={refetch} />}
       />
 
-      {/* FAB */}
-      <Link href="/kanban" title="Add Task" className="fixed bottom-6 right-6 bg-gray-900 text-white rounded-full w-14 h-14 flex items-center justify-center shadow-xl z-50 text-2xl font-light hover:bg-gray-700 transition-colors no-underline">
-        +
-      </Link>
+      {/* Health Status Bar */}
+      <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200 flex flex-wrap items-center gap-6">
+        <div className="flex items-center gap-2">
+          <StatusDot status={health.status} />
+          <span className="text-sm font-medium text-gray-900">
+            {health.status === 'healthy' ? 'All systems operational' : 'Service degraded'}
+          </span>
+        </div>
+        {gateway?.uptime && (
+          <div className="text-sm text-gray-500">
+            <span className="text-xs text-gray-400 uppercase mr-1">Uptime</span>
+            {gateway.uptime}
+          </div>
+        )}
+        {gateway?.memory && (
+          <div className="text-sm text-gray-500">
+            <span className="text-xs text-gray-400 uppercase mr-1">Memory</span>
+            {gateway.memory}
+          </div>
+        )}
+        {gateway?.cpu && (
+          <div className="text-sm text-gray-500">
+            <span className="text-xs text-gray-400 uppercase mr-1">CPU</span>
+            {gateway.cpu}
+          </div>
+        )}
+      </div>
 
-      {/* Stats Grid */}
+      {/* Stats Row */}
       <section className="mb-6">
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-          <StatCard label="Active Model" value={activeModel} variant="green" />
-          <StatCard label="Profiles" value={profiles.length || '—'} variant="yellow" />
-          <StatCard label="MCP Agents" value={mcpServers.length} variant="blue" />
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           <StatCard label="Total Tasks" value={tasks.length} />
+          <StatCard label="To Do" value={counts.todo} />
           <StatCard label="Ready" value={counts.ready} variant="blue" />
           <StatCard
-            label="⚡ Blocked"
+            label="Blocked"
             value={counts.blocked}
             variant={counts.blocked > 0 ? 'alert' : 'red'}
             alertLabel={counts.blocked > 0 ? 'Alert' : undefined}
-            subtext={counts.blocked > 0 ? 'needs attention' : undefined}
           />
-          {counts.running > 0 && <StatCard label="Running" value={counts.running} variant="yellow" subtext="in progress" />}
-          {counts.done > 0 && <StatCard label="Done" value={counts.done} variant="green" subtext="completed" />}
+          <StatCard label="Done" value={counts.done} variant="green" />
+          <StatCard label="Active Boards" value={activeBoards.length} variant="yellow" />
         </div>
       </section>
 
-      {/* Two-column grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Recent Sessions */}
-        <Card title="Recent Sessions">
-          <div className="max-h-72 overflow-auto">
-            {recentSessions.length > 0 ? (
-              <div className="flex flex-col gap-2">
-                {recentSessions.map((s: any, i: number) => (
-                  <div key={i} className="flex items-center justify-between p-3 bg-white rounded-md border border-gray-200">
-                    <span className="text-sm text-gray-900 truncate mr-3">{s.title?.substring(0, 40) || 'Untitled'}</span>
-                    <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded whitespace-nowrap">
-                      {timeAgo(s.last_active)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-gray-400 text-center py-8">No sessions</p>
-            )}
-          </div>
-        </Card>
-
-        {/* Cron Jobs */}
-        <Card title="Scheduled Jobs">
-          <div className="max-h-72 overflow-auto">
-            {cronJobs.length > 0 ? (
-              <div className="flex flex-col gap-2">
-                {cronJobs.map((c: any, i: number) => (
-                  <div key={i} className="flex items-center justify-between p-3 bg-white rounded-md border border-gray-200">
-                    <span className="text-sm text-gray-900">{c.name}</span>
-                    <span className="text-xs text-gray-500 font-mono">{c.schedule}</span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-6">
-                <div className="text-4xl mb-3">⏰</div>
-                <p className="text-gray-400 mb-3">No scheduled jobs yet</p>
-                <Link href="/schedule" className="inline-block bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors no-underline">
-                  Schedule your first job →
-                </Link>
-              </div>
-            )}
-          </div>
-        </Card>
-
-        {/* Kanban Boards */}
-        <Card title="Kanban Boards">
-          <div className="grid grid-cols-2 gap-2">
-            {boards.map((b: any, i: number) => {
-              const stats = boardStats[b.name] || { done: 0, total: b.total || 0 };
-              const pct = stats.total > 0 ? (stats.done / stats.total) * 100 : 0;
-              const barColor = pct === 100 ? 'bg-green-500' : pct > 50 ? 'bg-yellow-500' : 'bg-red-500';
+      {/* Two-column layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+        {/* Left: Live Activity Feed */}
+        <Card title="Live Activity" titleRight={<span className="text-xs text-gray-400">{feedItems.length} events</span>}>
+          <div className="max-h-96 overflow-y-auto -m-4 mt-0">
+            {feedItems.length > 0 ? feedItems.slice(0, 50).map((item, i) => {
+              const levelColor = item.level === 'error' ? 'border-l-red-500 bg-red-50/50' 
+                : item.level === 'warning' ? 'border-l-yellow-500 bg-yellow-50/50'
+                : item.type === 'event' ? 'border-l-blue-500'
+                : 'border-l-gray-300';
               return (
-                <div key={i} className="p-3 bg-white rounded-md border border-gray-200">
-                  <div className="flex justify-between items-center mb-1">
-                    <p className="text-sm font-medium text-gray-900 truncate">{b.name}</p>
-                    <span className="text-xs text-gray-500 bg-gray-100 px-1.5 rounded">{stats.total}</span>
+                <div key={i} className={`px-4 py-2 border-l-2 ${levelColor} border-b border-gray-100 last:border-b-0`}>
+                  <div className="flex items-start gap-2">
+                    <span className={`shrink-0 mt-0.5 px-1.5 py-0.5 rounded text-[0.6rem] uppercase font-medium ${
+                      item.type === 'event' ? 'bg-blue-100 text-blue-600' 
+                      : item.level === 'error' ? 'bg-red-100 text-red-600'
+                      : item.level === 'warning' ? 'bg-yellow-100 text-yellow-700'
+                      : 'bg-gray-100 text-gray-500'
+                    }`}>
+                      {item.type === 'event' ? 'event' : (item.level || 'log')}
+                    </span>
+                    <span className="text-xs text-gray-700 leading-relaxed break-all">{item.text}</span>
                   </div>
-                  <div className="bg-gray-200 rounded-full h-1.5 overflow-hidden">
-                    <div className={`h-full ${barColor} rounded-full transition-all`} style={{ width: `${pct}%` }} />
-                  </div>
-                  <div className="flex justify-between mt-1">
-                    <span className="text-[0.65rem] text-gray-400">Done: {stats.done}</span>
-                    <span className="text-[0.65rem] text-gray-400">{Math.round(pct)}%</span>
-                  </div>
+                  {item.time && (
+                    <div className="text-[0.6rem] text-gray-400 mt-0.5 ml-12">{timeAgo(item.time)}</div>
+                  )}
                 </div>
               );
-            })}
+            }) : (
+              <p className="text-gray-400 text-center py-8 text-sm">No recent activity</p>
+            )}
           </div>
         </Card>
 
-        {/* Skills */}
-        <Card title={`Installed Skills (${skillList.length})`}>
-          <div className="max-h-80 overflow-auto">
-            {sortedCats.map(cat => (
-              <details key={cat} className="border border-gray-200 rounded-md mb-1.5 bg-white">
-                <summary className="px-3 py-2 text-sm font-semibold text-gray-600 cursor-pointer select-none hover:bg-gray-50">
-                  {CAT_LABELS[cat] || cat} ({categorized[cat].length})
-                </summary>
-                <div className="flex gap-1.5 flex-wrap px-3 pb-3 pt-1">
-                  {categorized[cat].map((s: string, i: number) => (
-                    <span key={i} className="px-2 py-1 bg-gray-100 rounded text-xs text-gray-700">{s}</span>
+        {/* Right column */}
+        <div className="space-y-4">
+          {/* Board Overview */}
+          <Card title="Projects" titleRight={<span className="text-xs text-gray-400">{activeBoards.length} active</span>}>
+            <div className="space-y-3">
+              {activeBoards.length > 0 ? activeBoards.map((b: any, i: number) => {
+                const c = b.counts || {};
+                const total = b.total || 0;
+                const done = c.done || 0;
+                const blocked = c.blocked || 0;
+                const ready = c.ready || 0;
+                const todo = c.todo || 0;
+                return (
+                  <div key={i} className="p-3 bg-white rounded-md border border-gray-200">
+                    <div className="flex justify-between items-center mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-gray-900">{b.name}</span>
+                        {b.is_current && (
+                          <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 text-[0.6rem] rounded font-medium uppercase">current</span>
+                        )}
+                      </div>
+                      <span className="text-xs text-gray-500">{total} tasks</span>
+                    </div>
+                    {/* Status distribution bar */}
+                    {total > 0 && (
+                      <div className="flex h-1.5 rounded-full overflow-hidden bg-gray-100">
+                        {done > 0 && <div className="bg-green-500" style={{ width: `${(done / total) * 100}%` }} />}
+                        {ready > 0 && <div className="bg-blue-500" style={{ width: `${(ready / total) * 100}%` }} />}
+                        {todo > 0 && <div className="bg-gray-400" style={{ width: `${(todo / total) * 100}%` }} />}
+                        {blocked > 0 && <div className="bg-red-500" style={{ width: `${(blocked / total) * 100}%` }} />}
+                      </div>
+                    )}
+                    <div className="flex gap-3 mt-1.5 text-[0.65rem] text-gray-400">
+                      <span>{done} done</span>
+                      <span>{ready} ready</span>
+                      <span>{todo} todo</span>
+                      {blocked > 0 && <span className="text-red-500 font-medium">{blocked} blocked</span>}
+                    </div>
+                  </div>
+                );
+              }) : (
+                <p className="text-gray-400 text-center py-6 text-sm">No active projects</p>
+              )}
+            </div>
+          </Card>
+
+          {/* Recent Sessions */}
+          <Card title="Recent Sessions" titleRight={<span className="text-xs text-gray-400">{sessions.length} total</span>}>
+            <div className="space-y-1.5">
+              {recentSessions.length > 0 ? recentSessions.map((s: any, i: number) => (
+                <div key={i} className="flex items-center justify-between p-2.5 bg-white rounded-md border border-gray-200">
+                  <span className="text-sm text-gray-900 truncate mr-3">{s.title?.substring(0, 50) || 'Untitled'}</span>
+                  <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded whitespace-nowrap">
+                    {timeAgo(s.last_active)}
+                  </span>
+                </div>
+              )) : (
+                <p className="text-gray-400 text-center py-6 text-sm">No sessions</p>
+              )}
+            </div>
+          </Card>
+        </div>
+      </div>
+
+      {/* Bottom: System Info */}
+      {gateway && (gateway.processes.length > 0 || gateway.warnings.length > 0) && (
+        <Card title="System" titleRight={
+          <span className={`text-xs px-2 py-0.5 rounded font-medium ${
+            gateway.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'
+          }`}>
+            {gateway.status}
+          </span>
+        }>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {gateway.processes.length > 0 && (
+              <div>
+                <h3 className="text-xs text-gray-500 uppercase font-medium mb-2">Process Tree</h3>
+                <div className="space-y-1">
+                  {gateway.processes.map((p, i) => (
+                    <div key={i} className="text-xs text-gray-600 font-mono bg-white px-2 py-1 rounded border border-gray-100">
+                      {p}
+                    </div>
                   ))}
                 </div>
-              </details>
-            ))}
-          </div>
-        </Card>
-
-        {/* MCP Agents */}
-        <Card title={`🤖 MCP Agents (${mcpServers.length})`} variant="blue">
-          <div className="flex flex-col gap-2">
-            {mcpServers.length > 0 ? mcpServers.map((agent: any, i: number) => (
-              <div key={i} className="flex items-center justify-between p-3 bg-white rounded-md border border-blue-200">
-                <div className="flex items-center gap-2">
-                  <span className={`w-2.5 h-2.5 rounded-full ${agent.enabled !== false ? 'bg-green-500' : 'bg-gray-400'}`} />
-                  <span className="text-sm font-semibold text-blue-800">{agent.name}</span>
+              </div>
+            )}
+            {gateway.warnings.length > 0 && (
+              <div>
+                <h3 className="text-xs text-gray-500 uppercase font-medium mb-2">Warnings</h3>
+                <div className="space-y-1">
+                  {gateway.warnings.map((w, i) => (
+                    <div key={i} className="text-xs text-yellow-700 bg-yellow-50 px-2 py-1 rounded border border-yellow-200">
+                      {w}
+                    </div>
+                  ))}
                 </div>
-                <span className="text-xs text-gray-500">{agent.transport || agent.type || ''}</span>
               </div>
-            )) : (
-              <p className="text-gray-400 text-center py-4">No MCP agents</p>
             )}
           </div>
         </Card>
-
-        {/* Profiles */}
-        <Card title={`👤 Profiles (${profiles.length})`} variant="yellow">
-          <div className="grid grid-cols-2 gap-2">
-            {profiles.length > 0 ? profiles.map((profile: any, i: number) => (
-              <div key={i} className={`p-2 bg-white rounded-md ${profile.status === 'active' ? 'border-2 border-green-500' : 'border border-yellow-300'}`}>
-                <span className={`text-sm font-semibold ${profile.status === 'active' ? 'text-green-600' : 'text-yellow-800'}`}>
-                  {profile.status === 'active' ? '●' : '○'} {profile.name}
-                </span>
-                <span className={`text-xs ml-1.5 px-1.5 py-0.5 rounded font-semibold ${
-                  profile.status === 'active' ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'
-                }`}>
-                  {profile.status === 'active' ? 'active' : 'inactive'}
-                </span>
-                {profile.model && <span className="text-xs text-gray-500 block mt-0.5">{profile.model}</span>}
-              </div>
-            )) : (
-              <p className="col-span-2 text-gray-400 text-center py-4">No profiles data</p>
-            )}
-          </div>
-        </Card>
-      </div>
+      )}
     </div>
   );
 }
