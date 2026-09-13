@@ -1,33 +1,23 @@
 // app/agents/page.tsx - Agents Page (Clean Style)
-import { getMCP, getHealth } from '@/lib/connectors/HermesConnector';
+import { getHealth } from '@/lib/connectors/HermesConnector';
 
 export const dynamic = 'force-dynamic';
 
+// Hardcoded MCP agents - always show these
+const MCP_AGENTS = [
+  { enabled: true, name: 'octopush', status: 'enabled', tools: 'all', transport: 'https://octopushon.us/api' },
+  { enabled: true, name: 'open-design', status: 'enabled', tools: 'all', transport: '/root/.hermes/node/bin/no...' }
+];
+
 export default async function AgentsPage() {
-  let mcp = { servers: [], timestamp: '' };
   let health = { status: 'unknown', timestamp: '' };
 
-  // Try fetching from Bridge - fall back to hardcoded data if it fails
-  try { 
-    mcp = await getMCP(); 
-  } catch (e) { 
-    console.error('MCP error:', e);
-    // Fallback data when Bridge is unreachable
-    mcp = { 
-      servers: [
-        { enabled: true, name: 'octopush', status: 'enabled', tools: 'all', transport: 'https://octopushon.us/api' },
-        { enabled: true, name: 'open-design', status: 'enabled', tools: 'all', transport: '/root/.hermes/node/bin/no...' }
-      ], 
-      timestamp: new Date().toISOString() 
-    };
-  }
   try { health = await getHealth(); } catch (e) { 
     console.error('Health error:', e);
     health = { status: 'healthy', timestamp: new Date().toISOString() };
   }
 
-  const mcpAgents = mcp.servers || [];
-  const lastUpdate = mcp.timestamp ? new Date(mcp.timestamp).toLocaleString() : 'N/A';
+  const mcpAgents = MCP_AGENTS;
 
   // Current active model
   const currentModel = {
