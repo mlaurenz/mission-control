@@ -30,7 +30,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <p style={{ margin: '0.25rem 0 0', color: '#666', fontSize: '0.7rem' }}>Hermes Operations</p>
             <p style={{ margin: '0.35rem 0 0', color: '#999', fontSize: '0.65rem', fontFamily: 'monospace' }}>
               {process.env.VERCEL_GIT_COMMIT_SHA
-                ? `v${process.env.VERCEL_GIT_COMMIT_SHA.substring(0, 7)} · ${new Date(process.env.VERCEL_GIT_COMMIT_TIMESTAMP).toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', hour: '2-digit', minute: '2-digit', second: '2-digit' })}`
+                ? `v${process.env.VERCEL_GIT_COMMIT_SHA.substring(0, 7)} · ${process.env.VERCEL_GIT_COMMIT_TIMESTAMP ? new Date(process.env.VERCEL_GIT_COMMIT_TIMESTAMP).toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'N/A'}`
                 : 'dev'}
             </p>
           </div>
