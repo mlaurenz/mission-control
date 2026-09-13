@@ -21,6 +21,23 @@ export default function Sidebar() {
   const [open, setOpen] = useState(false);
 
   const commitSha = process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA;
+  const buildTime = process.env.NEXT_PUBLIC_BUILD_TIMESTAMP;
+
+  const deployLabel = (() => {
+    const parts: string[] = [];
+    if (commitSha) parts.push(`v${commitSha.substring(0, 7)}`);
+    if (buildTime) {
+      try {
+        const d = new Date(buildTime);
+        parts.push(d.toLocaleString('es-AR', {
+          timeZone: 'America/Argentina/Buenos_Aires',
+          day: '2-digit', month: '2-digit',
+          hour: '2-digit', minute: '2-digit',
+        }));
+      } catch {}
+    }
+    return parts.join(' · ') || 'dev';
+  })();
 
   return (
     <>
@@ -53,11 +70,9 @@ export default function Sidebar() {
         <div className="px-5 py-5 border-b border-gray-200">
           <h1 className="text-lg font-semibold text-gray-900">🎯 Mission Control</h1>
           <p className="text-xs text-gray-500 mt-0.5">Hermes Operations</p>
-          {commitSha && (
-            <p className="text-[0.65rem] text-gray-400 font-mono mt-1">
-              v{commitSha.substring(0, 7)}
+          <p className="text-[0.65rem] text-gray-400 font-mono mt-1">
+              {deployLabel}
             </p>
-          )}
         </div>
 
         {/* Nav */}
