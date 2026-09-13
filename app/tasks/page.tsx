@@ -59,10 +59,12 @@ export default function TasksPage() {
     );
   }
 
-  function formatDate(d: string) {
+  function formatDate(d: any) {
     if (!d) return '';
-    try { return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); }
-    catch { return d; }
+    try {
+      const ts = typeof d === 'number' && d < 1e12 ? d * 1000 : d;
+      return new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    } catch { return String(d); }
   }
 
   return (

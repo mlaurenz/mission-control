@@ -50,10 +50,13 @@ export default function KanbanPage() {
     );
   }
 
-  function formatDate(d: string) {
+  function formatDate(d: any) {
     if (!d) return '';
-    try { return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }
-    catch { return d; }
+    try {
+      // Bridge sends unix timestamps in seconds — convert to ms
+      const ts = typeof d === 'number' && d < 1e12 ? d * 1000 : d;
+      return new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    } catch { return String(d); }
   }
 
   function renderBoard(board: any) {
