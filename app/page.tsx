@@ -3,6 +3,12 @@ import { getHealth, getSessions, getCron, getKanbanBoards, getKanbanTasks, getSk
 
 export const dynamic = 'force-dynamic';
 
+// Hardcoded MCP agents - always show these
+const MCP_AGENTS = [
+  { enabled: true, name: 'octopush', status: 'enabled', tools: 'all', transport: 'https://octopushon.us/api' },
+  { enabled: true, name: 'open-design', status: 'enabled', tools: 'all', transport: '/root/.hermes/node/bin/no...' }
+];
+
 export default async function Home() {
   // Fetch all data
   let health = { status: 'unknown', timestamp: '' };
@@ -67,13 +73,20 @@ export default async function Home() {
 
       {/* Stats Grid */}
       <section style={{ marginBottom: '2rem' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '1rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
           
-          {/* Sessions */}
-          <div style={{ background: '#fafafa', padding: '1.25rem', borderRadius: '8px', border: '1px solid #e5e5e5', textAlign: 'center' }}>
-            <p style={{ margin: 0, color: '#666', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>Sessions</p>
-            <p style={{ margin: '0.5rem 0 0', fontSize: '2rem', color: '#1a1a1a', fontWeight: 700 }}>{sessions.sessions?.length || 0}</p>
-            <p style={{ margin: 0, color: '#999', fontSize: '0.7rem' }}>last 24h</p>
+          {/* Model */}
+          <div style={{ background: '#f0fdf4', padding: '1.25rem', borderRadius: '8px', border: '2px solid #86efac', textAlign: 'center' }}>
+            <p style={{ margin: 0, color: '#166534', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>Active Model</p>
+            <p style={{ margin: '0.5rem 0 0', fontSize: '1.5rem', color: '#166534', fontWeight: 700 }}>MiniMax-M2</p>
+            <p style={{ margin: 0, color: '#86efac', fontSize: '0.7rem' }}>🧠</p>
+          </div>
+
+          {/* MCP Agents */}
+          <div style={{ background: '#f0f9ff', padding: '1.25rem', borderRadius: '8px', border: '2px solid #7dd3fc', textAlign: 'center' }}>
+            <p style={{ margin: 0, color: '#0369a1', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>MCP Agents</p>
+            <p style={{ margin: '0.5rem 0 0', fontSize: '1.5rem', color: '#0369a1', fontWeight: 700 }}>{MCP_AGENTS.length}</p>
+            <p style={{ margin: 0, color: '#7dd3fc', fontSize: '0.7rem' }}>🤖</p>
           </div>
 
           {/* Total Tasks */}
@@ -201,6 +214,27 @@ export default async function Home() {
                 fontSize: '0.8rem',
                 color: '#333'
               }}>{s}</span>
+            ))}
+          </div>
+        </section>
+
+        {/* MCP Agents */}
+        <section style={{ background: '#f0f9ff', padding: '1.5rem', borderRadius: '8px', border: '2px solid #7dd3fc' }}>
+          <h2 style={{ fontSize: '1rem', color: '#0369a1', marginBottom: '1rem', fontWeight: 600 }}>🤖 MCP Agents</h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            {MCP_AGENTS.map((agent: any, i: number) => (
+              <div key={i} style={{ 
+                padding: '0.75rem', 
+                background: '#fff', 
+                borderRadius: '6px', 
+                border: '1px solid #7dd3fc',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#0369a1' }}>{agent.name}</span>
+                <span style={{ fontSize: '0.75rem', color: '#16a34a', background: '#dcfce7', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>✓ {agent.status}</span>
+              </div>
             ))}
           </div>
         </section>
