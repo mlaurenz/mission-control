@@ -123,10 +123,35 @@ export default async function Home() {
           </div>
 
           {/* Blocked */}
-          <div style={{ background: '#fef2f2', padding: '1.25rem', borderRadius: '8px', border: '1px solid #fecaca', textAlign: 'center' }}>
-            <p style={{ margin: 0, color: '#dc2626', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>Blocked</p>
-            <p style={{ margin: '0.5rem 0 0', fontSize: '2rem', color: '#dc2626', fontWeight: 700 }}>{taskCounts.blocked}</p>
-            <p style={{ margin: 0, color: '#f87171', fontSize: '0.7rem' }}>needs attention</p>
+          <div style={{ 
+            background: '#fef2f2', 
+            padding: '1.25rem', 
+            borderRadius: '8px', 
+            border: '3px solid #dc2626', 
+            textAlign: 'center',
+            boxShadow: taskCounts.blocked > 0 ? '0 0 0 1px #dc2626, 0 4px 12px rgba(220,38,38,0.15)' : 'none',
+            animation: taskCounts.blocked > 0 ? 'blockedPulse 2s ease-in-out infinite' : 'none',
+            position: 'relative'
+          }}>
+            {taskCounts.blocked > 0 && (
+              <span style={{ 
+                position: 'absolute', 
+                top: '-10px', 
+                left: '50%', 
+                transform: 'translateX(-50%)',
+                background: '#dc2626',
+                color: '#fff',
+                fontSize: '0.65rem',
+                fontWeight: 700,
+                padding: '0.2rem 0.6rem',
+                borderRadius: '4px',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em'
+              }}>⚠ Alert</span>
+            )}
+            <p style={{ margin: taskCounts.blocked > 0 ? '0.5rem 0 0' : 0, color: '#dc2626', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>⚡ Blocked</p>
+            <p style={{ margin: '0.5rem 0 0', fontSize: '2.5rem', color: '#dc2626', fontWeight: 800 }}>{taskCounts.blocked}</p>
+            <p style={{ margin: 0, color: '#b91c1c', fontSize: '0.7rem', fontWeight: 600 }}>needs attention</p>
           </div>
 
           {/* Running */}

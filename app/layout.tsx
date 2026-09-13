@@ -4,6 +4,14 @@ import './globals.css';
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
+      <head>
+        <style>{`
+          @keyframes blockedPulse {
+            0%, 100% { box-shadow: 0 0 0 1px #dc2626, 0 4px 12px rgba(220,38,38,0.15); }
+            50% { box-shadow: 0 0 0 4px rgba(220,38,38,0.2), 0 4px 20px rgba(220,38,38,0.3); }
+          }
+        `}</style>
+      </head>
       <body style={{ margin: 0, padding: 0, display: 'flex', minHeight: '100vh', background: '#ffffff' }}>
         {/* Sidebar - Clean */}
         <nav style={{ 
