@@ -1,5 +1,7 @@
-// app/kanban/page.tsx - Kanban Board Page
-import { getKanbanBoards, getKanbanTasks } from '@/lib/connectors/HermesConnector';
+// app/kanban/page.tsx - Kanban Board with Tailwind
+import { getKanbanBoards, getKanbanTasks } from '../../lib/connectors/HermesConnector';
+import PageHeader from '../components/PageHeader';
+import OfflineBanner from '../components/OfflineBanner';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,84 +18,69 @@ export default async function KanbanPage() {
     todo: 'TODO', ready: 'READY', running: 'IN PROGRESS',
     blocked: 'BLOCKED', review: 'REVIEW', done: 'DONE', archived: 'ARCHIVED'
   };
+  const columnColors: Record<string, string> = {
+    todo: 'border-gray-300', ready: 'border-blue-400', running: 'border-yellow-400',
+    blocked: 'border-red-500', review: 'border-orange-400', done: 'border-green-500', archived: 'border-gray-400'
+  };
 
   const tasksByBoard: Record<string, Record<string, any[]>> = {};
   boardsList.forEach((b: any) => {
     tasksByBoard[b.slug] = {};
     COLUMNS.forEach(col => { tasksByBoard[b.slug][col] = []; });
   });
-
   tasksList.forEach((t: any) => {
     const board = t.board || 'default';
     const status = t.status?.toLowerCase() || 'todo';
-    if (tasksByBoard[board]?.[status]) {
-      tasksByBoard[board][status].push(t);
-    }
+    if (tasksByBoard[board]?.[status]) tasksByBoard[board][status].push(t);
   });
 
   return (
-    <main style={{ minHeight: '100vh', background: '#ffffff', color: '#1a1a1a', padding: '2rem' }}>
-      <header style={{ marginBottom: '2rem', borderBottom: '2px solid #e5e5e5', paddingBottom: '1rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <h1 style={{ margin: 0, fontSize: '2rem', color: '#1a1a1a', fontWeight: 700 }}>📋 Kanban Board</h1>
-            <p style={{ margin: '0.5rem 0 0', color: '#666', fontSize: '0.9rem' }}>
-              {isOffline ? '⚠️ Bridge offline' : 'Todas las tareas de Hermes'}
-            </p>
-          </div>
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+    <div>
+      <PageHeader
+        title="Kanban Board"
+        icon="📌"
+        subtitle={isOffline ? '⚠️ Bridge offline' : 'Todas las tareas de Hermes'}
+        rightContent={
+          <div className="flex gap-1.5 flex-wrap">
             {boardsList.map((board: any) => (
-              <span key={board.slug} style={{
-                padding: '0.25rem 0.75rem', background: '#f0f0f0', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600
-              }}>
+              <span key={board.slug} className="px-2.5 py-1 bg-gray-100 rounded-md text-xs font-semibold text-gray-600">
                 {board.name || board.slug} ({board.total || 0})
               </span>
             ))}
           </div>
-        </div>
-      </header>
+        }
+      />
 
       {isOffline ? (
-        <div style={{ background: '#fef3c7', border: '1px solid #f59e0b', borderRadius: '8px', padding: '2rem', textAlign: 'center' }}>
-          <p style={{ margin: 0, color: '#92400e', fontSize: '1rem' }}>
-            ⚠️ <strong>Bridge offline</strong><br/>
-            <span style={{ fontSize: '0.9rem' }}>El bridge de Hermes no está alcanzable desde Vercel. Mostrando último estado conocido.</span>
-          </p>
-        </div>
+        <OfflineBanner message="Mostrando último estado conocido" />
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+        <div className="space-y-6">
           {boardsList.map((board: any) => {
             const boardTasks = tasksByBoard[board.slug] || {};
             const totalBoardTasks = Object.values(boardTasks).flat().length;
             const blockedCount = boardTasks['blocked']?.length || 0;
-            
+
             return (
-              <section key={board.slug} style={{
-                background: '#fafafa', borderRadius: '12px', padding: '1.5rem',
-                border: blockedCount > 0 ? '2px solid #ef4444' : '1px solid #e5e5e5'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                  <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, color: '#1a1a1a' }}>
+              <section key={board.slug} className={`bg-gray-50 rounded-xl p-4 border ${blockedCount > 0 ? 'border-2 border-red-400' : 'border-gray-200'}`}>
+                <div className="flex justify-between items-center mb-3">
+                  <h2 className="text-lg font-bold text-gray-900">
                     {board.name || board.slug}
-                    {blockedCount > 0 && <span style={{ color: '#ef4444', marginLeft: '0.5rem' }}>⚠ {blockedCount} blocked</span>}
+                    {blockedCount > 0 && <span className="text-red-500 ml-2 text-sm">⚠ {blockedCount} blocked</span>}
                   </h2>
-                  <span style={{ color: '#666', fontSize: '0.85rem' }}>{totalBoardTasks} tareas</span>
+                  <span className="text-sm text-gray-500">{totalBoardTasks} tareas</span>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: `repeat(${COLUMNS.length}, 1fr)`, gap: '0.5rem' }}>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2">
                   {COLUMNS.map(col => {
                     const colTasks = boardTasks[col] || [];
                     if (colTasks.length === 0) return null;
                     return (
-                      <div key={col} style={{ background: '#fff', borderRadius: '8px', padding: '0.75rem', border: '1px solid #e5e5e5' }}>
-                        <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#666', marginBottom: '0.5rem', textTransform: 'uppercase' }}>
+                      <div key={col} className={`bg-white rounded-lg p-3 border-t-2 ${columnColors[col]}`}>
+                        <div className="text-[0.65rem] font-bold text-gray-500 uppercase mb-2">
                           {columnLabels[col]} ({colTasks.length})
                         </div>
                         {colTasks.map((task: any, i: number) => (
-                          <div key={i} style={{
-                            background: '#f9f9f9', borderRadius: '4px', padding: '0.5rem',
-                            marginBottom: '0.25rem', fontSize: '0.75rem', borderLeft: col === 'blocked' ? '3px solid #ef4444' : '3px solid #e5e5e5'
-                          }}>
+                          <div key={i} className={`bg-gray-50 rounded p-2 mb-1 text-xs border-l-2 ${col === 'blocked' ? 'border-l-red-500' : 'border-l-gray-300'}`}>
                             {task.title || 'Untitled'}
                           </div>
                         ))}
@@ -108,10 +95,10 @@ export default async function KanbanPage() {
       )}
 
       {boardsList.length === 0 && !isOffline && (
-        <div style={{ background: '#fafafa', padding: '3rem', borderRadius: '12px', textAlign: 'center' }}>
-          <p style={{ color: '#666', margin: 0 }}>No hay boards disponibles</p>
+        <div className="bg-gray-50 p-12 rounded-xl text-center">
+          <p className="text-gray-400">No hay boards disponibles</p>
         </div>
       )}
-    </main>
+    </div>
   );
 }

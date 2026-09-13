@@ -1,24 +1,16 @@
-// app/tasks/page.tsx - Tasks Page (Linear Dark Style)
-import { getKanbanBoards, getKanbanTasks } from '@/lib/connectors/HermesConnector';
+// app/tasks/page.tsx - Tasks Page (Unified light theme)
+import { getKanbanBoards, getKanbanTasks } from '../../lib/connectors/HermesConnector';
+import PageHeader from '../components/PageHeader';
 
 export const dynamic = 'force-dynamic';
 
-const WORKERS = [
-  { name: 'default', label: '🤖 Default', color: '#7170ff' },
-  { name: 'automation', label: '⚙️ Automation', color: '#10b981' },
-  { name: 'coder', label: '💻 Coder', color: '#f59e0b' },
-  { name: 'research', label: '🔍 Research', color: '#06b6d4' },
-  { name: 'social', label: '📱 Social', color: '#ec4899' },
-  { name: 'consultant', label: '🎯 Consultant', color: '#8b5cf6' },
-];
-
 const COLUMNS = [
-  { key: 'todo', label: 'To Do', color: '#8a8f98' },
-  { key: 'ready', label: 'Ready', color: '#7170ff' },
-  { key: 'running', label: 'In Progress', color: '#10b981' },
-  { key: 'blocked', label: 'Blocked', color: '#ef4444', prominent: true },
-  { key: 'review', label: 'In Review', color: '#f59e0b' },
-  { key: 'done', label: 'Done', color: '#27a644' },
+  { key: 'todo', label: 'To Do', color: 'border-gray-400', badge: 'text-gray-600' },
+  { key: 'ready', label: 'Ready', color: 'border-blue-500', badge: 'text-blue-600' },
+  { key: 'running', label: 'In Progress', color: 'border-yellow-500', badge: 'text-yellow-600' },
+  { key: 'blocked', label: 'Blocked', color: 'border-red-500', badge: 'text-red-600' },
+  { key: 'review', label: 'In Review', color: 'border-orange-500', badge: 'text-orange-600' },
+  { key: 'done', label: 'Done', color: 'border-green-500', badge: 'text-green-600' },
 ];
 
 export default async function TasksPage() {
@@ -27,6 +19,7 @@ export default async function TasksPage() {
 
   const tasksList = tasks?.tasks || [];
   const boardsList = boards?.boards || [];
+  const isOffline = !tasks;
 
   const tasksByStatus: Record<string, any[]> = {};
   COLUMNS.forEach(col => { tasksByStatus[col.key] = []; });
@@ -37,127 +30,78 @@ export default async function TasksPage() {
 
   const totalTasks = tasksList.length;
   const blockedCount = tasksByStatus['blocked'].length;
-  const isOffline = !tasks;
 
   const visibleColumns = COLUMNS.filter(col => {
     if (col.key === 'running' || col.key === 'done') return tasksByStatus[col.key].length > 0;
-    if (col.key === 'blocked') return true;
     return true;
   });
 
   return (
-    <main style={{
-      minHeight: '100vh', background: '#08090a', color: '#f7f8f8',
-      fontFamily: "'Inter', system-ui, -apple-system, sans-serif", padding: '2rem'
-    }}>
-      <header style={{
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        marginBottom: '2rem', paddingBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.08)'
-      }}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 510, letterSpacing: '-0.02em', color: '#f7f8f8' }}>
-            Team Tasks
-          </h1>
-          <p style={{ margin: '0.5rem 0 0', color: '#8a8f98', fontSize: '0.875rem' }}>
-            {isOffline ? '⚠️ Bridge offline - showing cached data' : boardsList.length > 0 ? boardsList.map((b: any) => b.name || b.slug).join(', ') : 'No boards'}
-          </p>
-        </div>
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-          {WORKERS.map((w) => (
-            <span key={w.name} style={{
-              padding: '0.25rem 0.75rem', background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px', fontSize: '0.75rem', color: w.color
-            }}>
-              {w.label}
-            </span>
-          ))}
-        </div>
-      </header>
+    <div>
+      <PageHeader
+        title="Team Tasks"
+        icon="📋"
+        subtitle={isOffline ? '⚠️ Bridge offline' : boardsList.map((b: any) => b.name || b.slug).join(', ') || 'No boards'}
+      />
 
-      <div style={{
-        display: 'flex', gap: '1rem', marginBottom: '2rem', padding: '1rem',
-        background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)'
-      }}>
-        <div style={{ color: '#8a8f98', fontSize: '0.875rem' }}>
-          <span style={{ color: '#f7f8f8', fontWeight: 510 }}>{totalTasks}</span> total tasks
+      {/* Summary bar */}
+      <div className="flex flex-wrap gap-4 mb-6 p-3 bg-gray-50 rounded-lg border border-gray-200">
+        <div className="text-sm text-gray-500">
+          <span className="text-gray-900 font-medium">{totalTasks}</span> total
         </div>
-        {COLUMNS.slice(0, 4).map((col) => (
-          <div key={col.key} style={{ color: '#8a8f98', fontSize: '0.875rem' }}>
-            <span style={{ color: col.color, fontWeight: 510 }}>{tasksByStatus[col.key].length}</span> {col.label}
+        {COLUMNS.slice(0, 4).map(col => (
+          <div key={col.key} className="text-sm text-gray-500">
+            <span className={`font-medium ${col.badge}`}>{tasksByStatus[col.key].length}</span> {col.label}
           </div>
         ))}
       </div>
 
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: `repeat(${visibleColumns.length}, 1fr)`,
-        gap: '0.75rem', alignItems: 'start'
-      }}>
-        {visibleColumns.map((col) => {
+      {/* Board columns */}
+      <div className={`grid gap-3`} style={{ gridTemplateColumns: `repeat(${visibleColumns.length}, minmax(0, 1fr))` }}>
+        {visibleColumns.map(col => {
           const isBlocked = col.key === 'blocked';
           return (
             <div key={col.key}>
-              <div style={{
-                padding: '0.75rem',
-                borderBottom: `2px solid ${col.color}`,
-                marginBottom: '0.75rem',
-                position: 'relative',
-                ...(isBlocked && blockedCount > 0 ? {
-                  boxShadow: '0 0 12px rgba(239,68,68,0.3)',
-                  borderRadius: '6px 6px 0 0',
-                  background: 'rgba(239,68,68,0.08)'
-                } : {})
-              }}>
+              <div className={`
+                p-3 border-b-2 ${col.color} mb-3 rounded-t relative
+                ${isBlocked && blockedCount > 0 ? 'bg-red-50 shadow-[0_0_12px_rgba(239,68,68,0.2)]' : ''}
+              `}>
                 {isBlocked && blockedCount > 0 && (
-                  <span style={{
-                    position: 'absolute', top: '-8px', left: '50%', transform: 'translateX(-50%)',
-                    background: '#ef4444', color: '#fff', fontSize: '0.6rem', fontWeight: 700,
-                    padding: '0.15rem 0.5rem', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.05em'
-                  }}>⚠ Alert</span>
+                  <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-red-500 text-white text-[0.6rem] font-bold px-2 py-0.5 rounded uppercase">
+                    ⚠ Alert
+                  </span>
                 )}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{
-                    fontSize: '0.8125rem', fontWeight: 510, color: '#f7f8f8', letterSpacing: '0.02em'
-                  }}>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-gray-900">
                     {isBlocked && blockedCount > 0 ? `⚡ ${col.label}` : col.label}
                   </span>
-                  <span style={{
-                    fontSize: '0.75rem', color: '#62666d', background: 'rgba(255,255,255,0.05)',
-                    padding: '0.125rem 0.5rem', borderRadius: '4px'
-                  }}>
+                  <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded">
                     {tasksByStatus[col.key].length}
                   </span>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', minHeight: '200px' }}>
+              <div className="flex flex-col gap-2 min-h-[200px]">
                 {tasksByStatus[col.key].length > 0 ? (
                   tasksByStatus[col.key].map((task: any, i: number) => (
-                    <div key={i} style={{
-                      padding: '0.875rem', background: 'rgba(255,255,255,0.03)',
-                      border: isBlocked ? '1px solid rgba(239,68,68,0.3)' : '1px solid rgba(255,255,255,0.06)',
-                      borderRadius: '6px', cursor: 'pointer', transition: 'all 0.15s ease'
-                    }}>
-                      <div style={{
-                        fontSize: '0.8125rem', fontWeight: 400, color: '#f7f8f8', lineHeight: 1.4, marginBottom: '0.5rem'
-                      }}>
+                    <div key={i} className={`
+                      p-3 bg-gray-50 rounded-md border
+                      ${isBlocked ? 'border-red-200' : 'border-gray-200'}
+                      hover:shadow-sm transition-shadow cursor-pointer
+                    `}>
+                      <div className="text-sm text-gray-900 leading-snug mb-2">
                         {task.title || 'Untitled'}
                       </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.6875rem' }}>
-                        <span style={{ color: '#62666d' }}>{task.board || 'fonselp'}</span>
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-gray-400">{task.board || 'default'}</span>
                         {task.assignee && (
-                          <span style={{ color: '#8a8f98', background: 'rgba(255,255,255,0.04)', padding: '0.125rem 0.375rem', borderRadius: '3px' }}>
-                            {task.assignee}
-                          </span>
+                          <span className="text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">{task.assignee}</span>
                         )}
                       </div>
                     </div>
                   ))
                 ) : (
-                  <div style={{
-                    padding: '2rem 1rem', textAlign: 'center', color: '#62666d',
-                    fontSize: '0.75rem', border: '1px dashed rgba(255,255,255,0.06)', borderRadius: '6px'
-                  }}>
+                  <div className="p-8 text-center text-gray-300 text-xs border border-dashed border-gray-200 rounded-md">
                     No tasks
                   </div>
                 )}
@@ -167,23 +111,15 @@ export default async function TasksPage() {
         })}
       </div>
 
-      <div style={{
-        marginTop: '2rem', padding: '1rem', background: 'rgba(255,255,255,0.02)',
-        borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)'
-      }}>
-        <span style={{ color: '#8a8f98', fontSize: '0.8125rem', marginRight: '0.75rem' }}>Switch Board:</span>
+      {/* Board switcher */}
+      <div className="mt-6 p-3 bg-gray-50 rounded-lg border border-gray-200">
+        <span className="text-sm text-gray-500 mr-3">Switch Board:</span>
         {boardsList.map((board: any) => (
-          <button key={board.slug} style={{
-            margin: '0 0.25rem 0.5rem 0', padding: '0.375rem 0.75rem',
-            background: board.slug === 'fonselp' ? 'rgba(113, 112, 255, 0.15)' : 'rgba(255,255,255,0.04)',
-            border: board.slug === 'fonselp' ? '1px solid #7170ff' : '1px solid rgba(255,255,255,0.08)',
-            borderRadius: '6px', color: board.slug === 'fonselp' ? '#7170ff' : '#d0d6e0',
-            fontSize: '0.8125rem', fontWeight: 510, cursor: 'pointer'
-          }}>
+          <button key={board.slug} className="mr-1.5 mb-1.5 px-3 py-1.5 bg-white border border-gray-200 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer">
             {board.name || board.slug}
           </button>
         ))}
       </div>
-    </main>
+    </div>
   );
 }
