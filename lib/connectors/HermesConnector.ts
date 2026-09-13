@@ -3,15 +3,29 @@ const API_KEY = process.env.MISSION_CONTROL_API_KEY || 'test123';
 const BRIDGE_URL = process.env.HERMES_BRIDGE_URL || 'https://scotch-rendering-sporty.ngrok-free.dev';
 
 async function fetchHermes(endpoint: string) {
-  const apiKey = process.env.MISSION_CONTROL_API_KEY || 'test123';
-  const res = await fetch(`${BRIDGE_URL}${endpoint}`, {
-    headers: { 
-      'X-API-Key': apiKey || '',
-      'Content-Type': 'application/json'
+  try {
+    const apiKey = process.env.MISSION_CONTROL_API_KEY || 'test123';
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 4000);
+    
+    const res = await fetch(`${BRIDGE_URL}${endpoint}`, {
+      headers: { 
+        'X-API-Key': apiKey || '',
+        'Content-Type': 'application/json'
+      },
+      signal: controller.signal
+    });
+    clearTimeout(timeout);
+    
+    if (!res.ok) {
+      console.warn(`Bridge API error for ${endpoint}: ${res.status}`);
+      return null;
     }
-  });
-  if (!res.ok) throw new Error(`Hermes API error: ${res.status}`);
-  return res.json();
+    return res.json();
+  } catch (e: any) {
+    console.warn(`Bridge unreachable for ${endpoint}:`, e.message);
+    return null;
+  }
 }
 
 export async function getHealth() {
@@ -53,7 +67,7 @@ export async function getGatewayStatus() {
 export async function getMCP() {
   const data = await fetchHermes('/mcp');
   if (!data || !data.servers || data.servers.length === 0) {
-    throw new Error('No MCP servers');
+    return { servers: [], timestamp: new Date().toISOString() };
   }
   return data;
 }

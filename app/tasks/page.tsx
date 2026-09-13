@@ -3,7 +3,6 @@ import { getKanbanBoards, getKanbanTasks } from '@/lib/connectors/HermesConnecto
 
 export const dynamic = 'force-dynamic';
 
-// Workers
 const WORKERS = [
   { name: 'default', label: '🤖 Default', color: '#7170ff' },
   { name: 'automation', label: '⚙️ Automation', color: '#10b981' },
@@ -13,7 +12,6 @@ const WORKERS = [
   { name: 'consultant', label: '🎯 Consultant', color: '#8b5cf6' },
 ];
 
-// Columns config
 const COLUMNS = [
   { key: 'todo', label: 'To Do', color: '#8a8f98' },
   { key: 'ready', label: 'Ready', color: '#7170ff' },
@@ -23,42 +21,27 @@ const COLUMNS = [
   { key: 'done', label: 'Done', color: '#27a644' },
 ];
 
-function timeAgo(ts: string): string {
-  if (!ts) return 'N/A';
-  const date = new Date(ts.includes('_') ? ts.replace(/_/g, ' ') : ts);
-  if (isNaN(date.getTime())) return ts.substring(0, 12);
-  const diff = Date.now() - date.getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'just now';
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  if (days < 7) return `${days}d ago`;
-  return date.toLocaleDateString();
-}
-
 export default async function TasksPage() {
-  let boards = { boards: [] };
-  let tasks = { tasks: [] };
+  const boards = await getKanbanBoards();
+  const tasks = await getKanbanTasks();
 
-  try { boards = await getKanbanBoards(); } catch (e) {}
-  try { tasks = await getKanbanTasks(); } catch (e) {}
+  const tasksList = tasks?.tasks || [];
+  const boardsList = boards?.boards || [];
 
   const tasksByStatus: Record<string, any[]> = {};
   COLUMNS.forEach(col => { tasksByStatus[col.key] = []; });
-  (tasks.tasks || []).forEach((t: any) => {
+  tasksList.forEach((t: any) => {
     const status = t.status?.toLowerCase() || 'todo';
     if (tasksByStatus[status]) tasksByStatus[status].push(t);
   });
 
-  const totalTasks = (tasks.tasks || []).length;
+  const totalTasks = tasksList.length;
   const blockedCount = tasksByStatus['blocked'].length;
+  const isOffline = !tasks;
 
-  // Filter columns: hide running/done if 0, always show blocked if > 0
   const visibleColumns = COLUMNS.filter(col => {
     if (col.key === 'running' || col.key === 'done') return tasksByStatus[col.key].length > 0;
-    if (col.key === 'blocked') return true; // always visible if exists
+    if (col.key === 'blocked') return true;
     return true;
   });
 
@@ -67,7 +50,6 @@ export default async function TasksPage() {
       minHeight: '100vh', background: '#08090a', color: '#f7f8f8',
       fontFamily: "'Inter', system-ui, -apple-system, sans-serif", padding: '2rem'
     }}>
-      {/* Header */}
       <header style={{
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         marginBottom: '2rem', paddingBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.08)'
@@ -77,7 +59,7 @@ export default async function TasksPage() {
             Team Tasks
           </h1>
           <p style={{ margin: '0.5rem 0 0', color: '#8a8f98', fontSize: '0.875rem' }}>
-            {(boards.boards || []).length > 0 ? boards.boards.join(', ') : 'No boards'}
+            {isOffline ? '⚠️ Bridge offline - showing cached data' : boardsList.length > 0 ? boardsList.map((b: any) => b.name || b.slug).join(', ') : 'No boards'}
           </p>
         </div>
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
@@ -92,7 +74,6 @@ export default async function TasksPage() {
         </div>
       </header>
 
-      {/* Stats Bar */}
       <div style={{
         display: 'flex', gap: '1rem', marginBottom: '2rem', padding: '1rem',
         background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)'
@@ -107,7 +88,6 @@ export default async function TasksPage() {
         ))}
       </div>
 
-      {/* Kanban Board */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: `repeat(${visibleColumns.length}, 1fr)`,
@@ -117,7 +97,6 @@ export default async function TasksPage() {
           const isBlocked = col.key === 'blocked';
           return (
             <div key={col.key}>
-              {/* Column Header */}
               <div style={{
                 padding: '0.75rem',
                 borderBottom: `2px solid ${col.color}`,
@@ -151,7 +130,6 @@ export default async function TasksPage() {
                 </div>
               </div>
 
-              {/* Tasks */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', minHeight: '200px' }}>
                 {tasksByStatus[col.key].length > 0 ? (
                   tasksByStatus[col.key].map((task: any, i: number) => (
@@ -189,21 +167,20 @@ export default async function TasksPage() {
         })}
       </div>
 
-      {/* Board selector */}
       <div style={{
         marginTop: '2rem', padding: '1rem', background: 'rgba(255,255,255,0.02)',
         borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)'
       }}>
         <span style={{ color: '#8a8f98', fontSize: '0.8125rem', marginRight: '0.75rem' }}>Switch Board:</span>
-        {(boards.boards || []).map((board: string) => (
-          <button key={board} style={{
+        {boardsList.map((board: any) => (
+          <button key={board.slug} style={{
             margin: '0 0.25rem 0.5rem 0', padding: '0.375rem 0.75rem',
-            background: board === 'fonselp' ? 'rgba(113, 112, 255, 0.15)' : 'rgba(255,255,255,0.04)',
-            border: board === 'fonselp' ? '1px solid #7170ff' : '1px solid rgba(255,255,255,0.08)',
-            borderRadius: '6px', color: board === 'fonselp' ? '#7170ff' : '#d0d6e0',
+            background: board.slug === 'fonselp' ? 'rgba(113, 112, 255, 0.15)' : 'rgba(255,255,255,0.04)',
+            border: board.slug === 'fonselp' ? '1px solid #7170ff' : '1px solid rgba(255,255,255,0.08)',
+            borderRadius: '6px', color: board.slug === 'fonselp' ? '#7170ff' : '#d0d6e0',
             fontSize: '0.8125rem', fontWeight: 510, cursor: 'pointer'
           }}>
-            {board}
+            {board.name || board.slug}
           </button>
         ))}
       </div>
