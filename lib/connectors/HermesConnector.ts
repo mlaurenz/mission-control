@@ -51,7 +51,11 @@ export async function getGatewayStatus() {
 }
 
 export async function getMCP() {
-  return fetchHermes('/mcp');
+  const data = await fetchHermes('/mcp');
+  if (!data || !data.servers || data.servers.length === 0) {
+    throw new Error('No MCP servers');
+  }
+  return data;
 }
 
 export async function getActivity() {
