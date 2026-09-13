@@ -28,6 +28,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <div style={{ padding: '0 1.5rem 1.5rem', borderBottom: '1px solid #e5e5e5', marginBottom: '1rem' }}>
             <h1 style={{ margin: 0, fontSize: '1.25rem', color: '#1a1a1a', fontWeight: 600 }}>🎯 Mission Control</h1>
             <p style={{ margin: '0.25rem 0 0', color: '#666', fontSize: '0.7rem' }}>Hermes Operations</p>
+            <p style={{ margin: '0.35rem 0 0', color: '#999', fontSize: '0.65rem', fontFamily: 'monospace' }}>
+              v{process.env.VERCEL_GIT_COMMIT_SHA?.substring(0, 7) || 'dev'} · {new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+            </p>
           </div>
           
           {/* Nav Items */}
