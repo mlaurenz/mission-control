@@ -136,6 +136,8 @@ export const getLogs = (): Promise<LogsResponse | null> => fetchHermes('/logs', 
 export const getGatewayStatus = (): Promise<GatewayStatusResponse | null> => fetchHermes('/gateway/status', 8000);
 export const getActivity = (): Promise<ActivityResponse | null> => fetchHermes('/activity');
 export const getCodeStats = (): Promise<CodeStatsResponse | null> => fetchHermes('/code-stats');
+export const getClients = (): Promise<any> => fetchHermes('/clients');
+export const getClient = (slug: string): Promise<any> => fetchHermes(`/clients/${slug}`);
 export const getProfiles = (): Promise<any> => fetchHermes('/profiles');
 export const getProfileLogs = (name: string): Promise<any> => fetchHermes(`/profiles/${name}/logs`, 8000);
 

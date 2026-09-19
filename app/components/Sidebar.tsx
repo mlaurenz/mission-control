@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { href: '/', label: 'Overview', icon: '◉' },
   { href: '/agents', label: 'Agents', icon: '●' },
   { href: '/profiles', label: 'Profiles', icon: '◐' },
+  { href: '/clients', label: 'Clients', icon: '◆' },
   { href: '/kanban', label: 'Projects', icon: '◧' },
   { href: '/tasks', label: 'Tasks', icon: '☰' },
   { href: '/activity', label: 'Activity', icon: '⚡' },
