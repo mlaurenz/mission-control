@@ -4,8 +4,8 @@ import type { Metadata } from 'next';
 import Sidebar from './components/Sidebar';
 
 export const metadata: Metadata = {
-  title: 'Mission Control — Hermes',
-  description: 'Hermes Operations Dashboard',
+  title: 'Mission Control — Agent Sales Dashboard',
+  description: 'Client-centric dashboard for AI agent operations',
   icons: { icon: '/favicon.ico' },
 };
 

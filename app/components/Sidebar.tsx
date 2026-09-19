@@ -1,21 +1,24 @@
 'use client';
-// app/components/Sidebar.tsx - Responsive sidebar with active state
+// app/components/Sidebar.tsx - Simplified sidebar: business-first navigation
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 
-const NAV_ITEMS = [
-  { href: '/', label: 'Overview', icon: '◉' },
-  { href: '/agents', label: 'Agents', icon: '●' },
-  { href: '/profiles', label: 'Profiles', icon: '◐' },
-  { href: '/clients', label: 'Clients', icon: '◆' },
-  { href: '/kanban', label: 'Projects', icon: '◧' },
-  { href: '/tasks', label: 'Tasks', icon: '☰' },
-  { href: '/activity', label: 'Activity', icon: '⚡' },
-  { href: '/sessions', label: 'Sessions', icon: '▤' },
-  { href: '/schedule', label: 'Schedule', icon: '◔' },
-  { href: '/system', label: 'System', icon: '⚙' },
-  { href: '/skills', label: 'Skills', icon: '◈' },
+const NAV_SECTIONS = [
+  {
+    label: null, // No section header for primary nav
+    items: [
+      { href: '/', label: 'Clients', icon: '◆' },
+      { href: '/pipeline', label: 'Pipeline', icon: '☰' },
+      { href: '/automations', label: 'Automations', icon: '◔' },
+    ],
+  },
+  {
+    label: 'System',
+    items: [
+      { href: '/system', label: 'Infrastructure', icon: '⚙' },
+    ],
+  },
 ];
 
 export default function Sidebar() {
@@ -39,6 +42,11 @@ export default function Sidebar() {
     }
     return parts.join(' · ') || 'dev';
   })();
+
+  function isActive(href: string) {
+    if (href === '/') return pathname === '/' || pathname.startsWith('/clients');
+    return pathname === href || pathname.startsWith(href);
+  }
 
   return (
     <>
@@ -70,7 +78,7 @@ export default function Sidebar() {
         {/* Logo */}
         <div className="px-5 py-5 border-b border-gray-200">
           <h1 className="text-lg font-semibold text-gray-900">Mission Control</h1>
-          <p className="text-xs text-gray-500 mt-0.5">Hermes Observability</p>
+          <p className="text-xs text-gray-500 mt-0.5">Agent Sales Dashboard</p>
           <p className="text-[0.65rem] text-gray-400 font-mono mt-1">
             {deployLabel}
           </p>
@@ -78,33 +86,41 @@ export default function Sidebar() {
 
         {/* Nav */}
         <div className="flex-1 px-3 py-2 overflow-y-auto">
-          {NAV_ITEMS.map(item => {
-            const isActive = pathname === item.href || 
-              (item.href !== '/' && pathname.startsWith(item.href));
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setOpen(false)}
-                className={`
-                  flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium mb-0.5
-                  transition-colors duration-150
-                  ${isActive
-                    ? 'bg-gray-900 text-white'
-                    : 'text-gray-600 hover:bg-gray-200/70 hover:text-gray-900'
-                  }
-                `}
-              >
-                <span className="text-sm w-4 text-center">{item.icon}</span>
-                {item.label}
-              </Link>
-            );
-          })}
+          {NAV_SECTIONS.map((section, si) => (
+            <div key={si} className={si > 0 ? 'mt-4' : ''}>
+              {section.label && (
+                <p className="px-3 py-1.5 text-[0.6rem] text-gray-400 uppercase tracking-wider font-semibold">
+                  {section.label}
+                </p>
+              )}
+              {section.items.map(item => {
+                const active = isActive(item.href);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setOpen(false)}
+                    className={`
+                      flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium mb-0.5
+                      transition-colors duration-150
+                      ${active
+                        ? 'bg-gray-900 text-white'
+                        : 'text-gray-600 hover:bg-gray-200/70 hover:text-gray-900'
+                      }
+                    `}
+                  >
+                    <span className="text-sm w-4 text-center">{item.icon}</span>
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
         </div>
 
         {/* Footer */}
         <div className="px-5 py-3 border-t border-gray-200 text-xs text-gray-400">
-          Hermes Bridge · v1.0
+          Hermes Bridge · v2.0
         </div>
       </nav>
     </>

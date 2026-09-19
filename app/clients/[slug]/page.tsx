@@ -1,8 +1,9 @@
 'use client';
 export const dynamic = 'force-dynamic';
-// app/clients/[slug]/page.tsx — Client detail page
+// app/clients/[slug]/page.tsx — Client detail: tasks, agents, automations
 
 import { useParams } from 'next/navigation';
+import Link from 'next/link';
 import PageHeader from '../../components/PageHeader';
 import StatCard from '../../components/StatCard';
 import Card from '../../components/Card';
@@ -14,42 +15,52 @@ import { useState } from 'react';
 interface Task {
   id: string;
   title: string;
-  status: 'blocked' | 'ready' | 'todo' | 'done' | 'archived';
+  status: string;
   assignee?: string;
   created_at: string;
   started_at?: string | null;
-  board?: string;
+  body?: string;
 }
 
-interface Agent {
+interface ProfileDetail {
   name: string;
   model: string;
   provider: string;
   has_soul: boolean;
-  mcp_servers?: number;
+  mcp_servers_count: number;
+  sessions_count: number;
+  latest_session: string | null;
 }
 
 interface CronJob {
+  id: string;
   name: string;
   schedule: string;
-  last_run?: string;
-  last_status?: string;
+  enabled: boolean;
+  profile: string;
+  last_run: string;
+  last_status: string;
+  next_run: string;
 }
 
 interface ClientDetail {
   slug: string;
   name: string;
-  status: string;
-  tasks: Task[];
-  agents: Agent[];
-  cron_jobs: CronJob[];
-  counts?: {
-    todo: number;
-    ready: number;
-    blocked: number;
-    done: number;
-    archived: number;
+  status_color: string;
+  profiles: string[];
+  agents_count: number;
+  has_mcp: boolean;
+  active_tasks: number;
+  done_tasks: number;
+  blocked_tasks: number;
+  board: {
+    counts: Record<string, number>;
+    total: number;
+    created_at: string | null;
   };
+  tasks: Task[];
+  profile_details: ProfileDetail[];
+  cron_jobs: CronJob[];
 }
 
 const STATUS_ORDER = ['blocked', 'ready', 'todo', 'done', 'archived'];
@@ -59,9 +70,10 @@ const STATUS_COLORS: Record<string, string> = {
   todo: 'bg-gray-100 text-gray-700 border-gray-200',
   done: 'bg-green-100 text-green-700 border-green-200',
   archived: 'bg-gray-50 text-gray-400 border-gray-200',
+  running: 'bg-indigo-100 text-indigo-700 border-indigo-200',
 };
 
-const TABS = ['Tasks', 'Agents', 'Activity'] as const;
+const TABS = ['Tasks', 'Agents', 'Automations'] as const;
 type Tab = typeof TABS[number];
 
 const PROVIDER_COLORS: Record<string, string> = {
@@ -71,11 +83,20 @@ const PROVIDER_COLORS: Record<string, string> = {
   openai: 'bg-green-100 text-green-700',
 };
 
-const CRON_STATUS_COLORS: Record<string, string> = {
-  success: 'bg-green-100 text-green-700',
-  failed: 'bg-red-100 text-red-700',
-  running: 'bg-blue-100 text-blue-700',
+const STATUS_DOT: Record<string, string> = {
+  green: 'bg-green-500',
+  yellow: 'bg-yellow-400',
+  gray: 'bg-gray-300',
 };
+
+function daysSince(dateStr: string | null | undefined): number | null {
+  if (!dateStr) return null;
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return null;
+    return Math.floor((Date.now() - d.getTime()) / 86400000);
+  } catch { return null; }
+}
 
 export default function ClientDetailPage() {
   const params = useParams();
@@ -99,21 +120,17 @@ export default function ClientDetailPage() {
   }
 
   const clientName = data?.name || slug;
+  const statusColor = data?.status_color || 'gray';
   const tasks = data?.tasks || [];
-  const agents = data?.agents || [];
+  const profileDetails = data?.profile_details || [];
   const cronJobs = data?.cron_jobs || [];
+  const profiles = data?.profiles || [];
+  const hasMcp = data?.has_mcp || false;
 
-  // Compute counts from tasks if not provided
-  const counts = data?.counts || tasks.reduce(
-    (acc, t) => {
-      const s = t.status?.toLowerCase() as keyof typeof acc;
-      if (s in acc) acc[s]++;
-      return acc;
-    },
-    { todo: 0, ready: 0, blocked: 0, done: 0, archived: 0 }
-  );
-
-  const active = (counts.todo || 0) + (counts.ready || 0) + (counts.blocked || 0);
+  const active = data?.active_tasks || 0;
+  const done = data?.done_tasks || 0;
+  const blocked = data?.blocked_tasks || 0;
+  const total = data?.board?.total || 0;
 
   // Group tasks by status
   const grouped: Record<string, Task[]> = {};
@@ -121,6 +138,10 @@ export default function ClientDetailPage() {
   tasks.forEach((t) => {
     const s = t.status?.toLowerCase() || 'todo';
     if (grouped[s]) grouped[s].push(t);
+    else {
+      if (!grouped[s]) grouped[s] = [];
+      grouped[s].push(t);
+    }
   });
 
   function formatDate(d: any) {
@@ -133,23 +154,48 @@ export default function ClientDetailPage() {
 
   return (
     <div>
-      <PageHeader
-        title={clientName}
-        subtitle={`Client overview · ${slug}`}
-        rightContent={<RefreshIndicator lastUpdated={lastUpdated} loading={loading} onRefresh={refetch} />}
-      />
+      {/* Header */}
+      <div className="mb-6 pb-4 border-b-2 border-gray-200">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <Link href="/" className="text-sm text-gray-400 hover:text-gray-600">← Clients</Link>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className={`w-3 h-3 rounded-full ring-2 ring-offset-1 ${STATUS_DOT[statusColor] || 'bg-gray-300'} ${
+                statusColor === 'green' ? 'ring-green-200' : statusColor === 'yellow' ? 'ring-yellow-200' : 'ring-gray-200'
+              }`} />
+              <h1 className="text-2xl font-bold text-gray-900">{clientName}</h1>
+              {hasMcp && (
+                <span className="text-xs px-2 py-0.5 bg-purple-100 text-purple-700 rounded font-medium">MCP</span>
+              )}
+            </div>
+            {/* Assigned profiles */}
+            {profiles.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {profiles.map(p => (
+                  <span key={p} className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded font-medium">
+                    {p}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+          <RefreshIndicator lastUpdated={lastUpdated} loading={loading} onRefresh={refetch} />
+        </div>
+      </div>
 
       {/* Stats row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
         <StatCard label="Active Tasks" value={active} variant={active > 0 ? 'blue' : 'default'} />
-        <StatCard label="Done" value={counts.done || 0} variant="green" />
+        <StatCard label="Done" value={done} variant="green" />
         <StatCard
           label="Blocked"
-          value={counts.blocked || 0}
-          variant={(counts.blocked || 0) > 0 ? 'alert' : 'default'}
-          alertLabel={(counts.blocked || 0) > 0 ? 'attention' : undefined}
+          value={blocked}
+          variant={blocked > 0 ? 'alert' : 'default'}
+          alertLabel={blocked > 0 ? 'attention' : undefined}
         />
-        <StatCard label="Agents" value={agents.length} variant="default" />
+        <StatCard label="Agents" value={profileDetails.length} variant="default" />
       </div>
 
       {/* Tabs */}
@@ -168,10 +214,10 @@ export default function ClientDetailPage() {
             {tab === 'Tasks' && tasks.length > 0 && (
               <span className="ml-1.5 text-xs opacity-70">({tasks.length})</span>
             )}
-            {tab === 'Agents' && agents.length > 0 && (
-              <span className="ml-1.5 text-xs opacity-70">({agents.length})</span>
+            {tab === 'Agents' && profileDetails.length > 0 && (
+              <span className="ml-1.5 text-xs opacity-70">({profileDetails.length})</span>
             )}
-            {tab === 'Activity' && cronJobs.length > 0 && (
+            {tab === 'Automations' && cronJobs.length > 0 && (
               <span className="ml-1.5 text-xs opacity-70">({cronJobs.length})</span>
             )}
           </button>
@@ -196,29 +242,48 @@ export default function ClientDetailPage() {
                     }`}>
                       {status} ({statusTasks.length})
                     </h4>
-                    <div className="space-y-1">
-                      {statusTasks.map((task, i) => (
-                        <div
-                          key={task.id || i}
-                          className={`p-2.5 rounded-md border text-sm ${
-                            status === 'blocked'
-                              ? 'border-l-2 border-l-red-500 border-red-200 bg-red-50/50'
-                              : 'border-gray-200 bg-gray-50'
-                          }`}
-                        >
-                          <div className="flex justify-between items-center">
-                            <span className="text-gray-900">{task.title}</span>
-                            <span className={`px-1.5 py-0.5 rounded text-[0.6rem] font-medium ${STATUS_COLORS[status] || 'bg-gray-100 text-gray-600'}`}>
-                              {status}
-                            </span>
+                    <div className="space-y-1.5">
+                      {statusTasks.map((task, i) => {
+                        const blockedDays = status === 'blocked' ? daysSince(task.created_at) : null;
+                        return (
+                          <div
+                            key={task.id || i}
+                            className={`p-3 rounded-md border text-sm ${
+                              status === 'blocked'
+                                ? 'border-l-[3px] border-l-red-500 border-red-200 bg-red-50/60'
+                                : status === 'done'
+                                ? 'border-gray-200 bg-gray-50/50'
+                                : 'border-gray-200 bg-white'
+                            }`}
+                          >
+                            <div className="flex justify-between items-start gap-2">
+                              <div className="flex-1 min-w-0">
+                                <span className="text-gray-900 leading-snug">{task.title}</span>
+                                {task.body && (
+                                  <p className="text-xs text-gray-400 mt-1 line-clamp-2">{task.body}</p>
+                                )}
+                              </div>
+                              <span className={`flex-shrink-0 px-1.5 py-0.5 rounded text-[0.6rem] font-medium ${STATUS_COLORS[status] || 'bg-gray-100 text-gray-600'}`}>
+                                {status}
+                              </span>
+                            </div>
+                            <div className="text-[0.65rem] text-gray-400 mt-1.5 flex flex-wrap gap-3 items-center">
+                              {task.assignee && (
+                                <span className="px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded font-medium">
+                                  ● {task.assignee}
+                                </span>
+                              )}
+                              {task.created_at && <span>Created {formatDate(task.created_at)}</span>}
+                              {task.started_at && <span>Started {formatDate(task.started_at)}</span>}
+                              {blockedDays !== null && blockedDays > 0 && (
+                                <span className="text-red-500 font-semibold">
+                                  ⚠ blocked {blockedDays}d
+                                </span>
+                              )}
+                            </div>
                           </div>
-                          <div className="text-[0.65rem] text-gray-400 mt-1 flex gap-3">
-                            {task.assignee && <span>Assignee: {task.assignee}</span>}
-                            {task.created_at && <span>Created {formatDate(task.created_at)}</span>}
-                            {task.started_at && <span>Started {formatDate(task.started_at)}</span>}
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 );
@@ -235,19 +300,20 @@ export default function ClientDetailPage() {
       {/* Agents tab */}
       {activeTab === 'Agents' && (
         <div>
-          {agents.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {agents.map((agent, i) => {
+          {profileDetails.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {profileDetails.map((agent, i) => {
                 const providerStyle = PROVIDER_COLORS[agent.provider] || 'bg-gray-100 text-gray-600';
                 return (
-                  <div key={agent.name || i} className="bg-gray-50 rounded-lg border border-gray-200 p-4">
+                  <div key={agent.name || i} className="bg-white rounded-lg border border-gray-200 p-4">
                     <div className="flex items-center gap-2 mb-2">
+                      <span className={`w-2 h-2 rounded-full ${agent.sessions_count > 0 ? 'bg-green-500' : 'bg-gray-300'}`} />
                       <span className="text-sm font-semibold text-gray-900">{agent.name}</span>
                       {agent.has_soul && (
                         <span className="text-[0.6rem] px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded" title="Has SOUL.md">♦ Soul</span>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 flex-wrap mb-2">
+                    <div className="flex items-center gap-2 flex-wrap mb-3">
                       {agent.model && (
                         <span className={`text-[0.65rem] px-1.5 py-0.5 rounded font-medium ${providerStyle}`}>
                           {agent.model}
@@ -257,11 +323,16 @@ export default function ClientDetailPage() {
                         <span className="text-[0.6rem] text-gray-400">{agent.provider}</span>
                       )}
                     </div>
-                    {(agent.mcp_servers !== undefined && agent.mcp_servers > 0) && (
-                      <p className="text-[0.65rem] text-gray-500">
-                        {agent.mcp_servers} MCP server{agent.mcp_servers !== 1 ? 's' : ''}
-                      </p>
-                    )}
+                    {/* Activity stats */}
+                    <div className="flex gap-4 text-[0.65rem] text-gray-500 border-t border-gray-100 pt-2">
+                      <span>{agent.sessions_count} sessions</span>
+                      {agent.mcp_servers_count > 0 && (
+                        <span>{agent.mcp_servers_count} MCP server{agent.mcp_servers_count !== 1 ? 's' : ''}</span>
+                      )}
+                      {agent.latest_session && (
+                        <span className="ml-auto text-gray-400">Last: {agent.latest_session.substring(0, 10)}</span>
+                      )}
+                    </div>
                   </div>
                 );
               })}
@@ -269,43 +340,56 @@ export default function ClientDetailPage() {
           ) : (
             <div className="bg-gray-50 p-12 rounded-xl text-center border border-gray-200">
               <p className="text-gray-400">No agents assigned to this client</p>
+              <p className="text-xs text-gray-400 mt-1">Configure profiles in clients.json</p>
             </div>
           )}
         </div>
       )}
 
-      {/* Activity tab */}
-      {activeTab === 'Activity' && (
+      {/* Automations tab */}
+      {activeTab === 'Automations' && (
         <div>
           {cronJobs.length > 0 ? (
-            <Card title="Cron Jobs">
-              <div className="space-y-1">
-                {cronJobs.map((job, i) => {
-                  const statusStyle = CRON_STATUS_COLORS[job.last_status || ''] || 'bg-gray-100 text-gray-500';
-                  return (
-                    <div key={job.name || i} className="flex items-center justify-between p-2.5 rounded-md border border-gray-200 bg-gray-50 text-sm">
-                      <div>
-                        <span className="font-medium text-gray-900">{job.name}</span>
-                        <span className="ml-2 text-[0.65rem] text-gray-400 font-mono">{job.schedule}</span>
-                      </div>
+            <Card title="Scheduled Jobs">
+              <div className="space-y-1.5">
+                {cronJobs.map((job, i) => (
+                  <div key={job.id || i} className="flex items-center justify-between p-3 rounded-md border border-gray-200 bg-white text-sm">
+                    <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        {job.last_run && (
-                          <span className="text-[0.65rem] text-gray-400">{timeAgo(job.last_run)}</span>
-                        )}
-                        {job.last_status && (
-                          <span className={`px-1.5 py-0.5 rounded text-[0.6rem] font-medium ${statusStyle}`}>
-                            {job.last_status}
-                          </span>
-                        )}
+                        <span className={`w-2 h-2 rounded-full ${job.enabled ? 'bg-green-500' : 'bg-gray-300'}`} />
+                        <span className="font-medium text-gray-900">{job.name}</span>
+                      </div>
+                      <div className="flex items-center gap-3 mt-1 text-[0.65rem] text-gray-400">
+                        <span className="font-mono">{job.schedule}</span>
+                        {job.profile && <span>profile: {job.profile}</span>}
                       </div>
                     </div>
-                  );
-                })}
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      {job.last_run && (
+                        <span className="text-[0.65rem] text-gray-400">{timeAgo(job.last_run)}</span>
+                      )}
+                      {job.last_status && (
+                        <span className={`px-1.5 py-0.5 rounded text-[0.6rem] font-medium ${
+                          job.last_status === 'success' ? 'bg-green-100 text-green-700' :
+                          job.last_status === 'failed' ? 'bg-red-100 text-red-700' :
+                          'bg-gray-100 text-gray-500'
+                        }`}>
+                          {job.last_status}
+                        </span>
+                      )}
+                      <span className={`px-1.5 py-0.5 rounded text-[0.6rem] font-medium ${
+                        job.enabled ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'
+                      }`}>
+                        {job.enabled ? 'active' : 'paused'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
               </div>
             </Card>
           ) : (
             <div className="bg-gray-50 p-12 rounded-xl text-center border border-gray-200">
-              <p className="text-gray-400">No cron jobs for this client</p>
+              <p className="text-gray-400">No automations for this client</p>
             </div>
           )}
         </div>
